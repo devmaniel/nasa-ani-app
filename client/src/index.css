@@ -1,0 +1,73 @@
+/* Tailwind without its page-wide reset (preflight), so pages copied from artifacts keep their own base styles.
+   Layer order: copied page styles sit in "page", under Tailwind's utilities, so shadcn parts keep their look inside them. */
+@layer theme, base, page, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* light only: dark: classes apply only under a .dark parent, which the app never sets */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* shadcn's colour names, set to the project's design tokens (artifacts/master-template-v2.html :root) */
+:root {
+  --background: #fff;                    /* milk */
+  --foreground: #08090a;                 /* ink */
+  --card: #fff;
+  --card-foreground: #08090a;
+  --popover: #fff;
+  --popover-foreground: #08090a;
+  --primary: #0c8c5e;                    /* green: the project's primary, white text on it */
+  --primary-foreground: #fff;
+  --secondary: #f1f0ee;                  /* sand-50 */
+  --secondary-foreground: #08090a;
+  --muted: #f1f0ee;                      /* sand-50 */
+  --muted-foreground: rgba(8, 9, 10, 0.6);
+  --accent: #f1f0ee;
+  --accent-foreground: #08090a;
+  --destructive: #cf3f42;
+  --border: rgba(10, 11, 15, 0.08);
+  --input: rgba(10, 11, 15, 0.16);
+  --ring: #08090a;
+  --radius: 0.625rem;
+}
+
+/* the template's base page styles (artifacts/master-template-v2.html, html and body) */
+@layer base {
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: #fefdfb;                 /* sand-100 */
+    color: #0a0b0f;                      /* black */
+    font-family: "PP Agrandir Variable", "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 500;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+}
