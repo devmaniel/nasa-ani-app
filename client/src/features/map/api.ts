@@ -68,6 +68,19 @@ export async function cityBorder(lon: number, lat: number, signal: AbortSignal):
   return areaOf(await res.json())
 }
 
+/* the town and province a point is in ("Carmona, Cavite"), from the same lookup; null when it names neither */
+export async function placeName(lon: number, lat: number): Promise<string | null> {
+  const params = new URLSearchParams({ format: 'jsonv2', lat: String(lat), lon: String(lon), zoom: '10', addressdetails: '1' })
+  const res = await fetch(`${BORDER_URL}?${params}`)
+  if (!res.ok) throw new Error(`Place name lookup failed (${res.status})`)
+  const json: unknown = await res.json()
+  const a = isRecord(json) && isRecord(json.address) ? json.address : null
+  if (!a) return null
+  const first = (...keys: string[]) => keys.map((k) => a[k]).find((v): v is string => typeof v === 'string')
+  const parts = [first('city', 'town', 'municipality', 'village'), first('province', 'county', 'state')].filter((v): v is string => !!v)
+  return parts.length ? parts.join(', ') : null
+}
+
 /* where the picked suggestion is, and how wide to show it (Google's view of the place, at least a spot's width) */
 export async function placeOf(s: Suggestion): Promise<Place> {
   const { place } = await s.prediction.toPlace().fetchFields({ fields: ['location', 'viewport'] })

@@ -34,7 +34,6 @@ export function parseIso(v: string) {
 
 export const M0 = monthIndex(TODAY)
 export const MAX_END = monthEnd(M0 + AHEAD_MONTHS)
-export const PAST_FROM = new Date(1981, 0, 1) /* NASA POWER's measured monthly numbers start in January 1981 */
 
 export function addDays(d: Date, n: number) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)

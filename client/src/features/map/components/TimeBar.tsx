@@ -3,7 +3,7 @@ import { clamp } from '../climate'
 import { MON, mName, TODAY, yearOf, type Dates, type Span } from '../dates'
 import type { Strip } from '../hooks/useClimateLayer'
 
-const MARK_MIN_POS = 6 /* % of the lane a month mark needs from the last one, and from "Today" */
+const MARK_MIN_POS = 18 /* % of the lane a month mark needs from the last one, and from "Today" (the lane is narrow, in the panel) */
 const MARK_STEPS = [1, 2, 3, 6, 12] /* every month, or fewer on long dates */
 
 type Props = { dates: Dates; w: Span; frame: number | null; playing: boolean; strip: Strip | null; onPlay: () => void; onScrub: (k: number) => void }
@@ -25,7 +25,7 @@ export function TimeBar({ dates, w, frame, playing, strip, onPlay, onScrub }: Pr
   const markText = (m: number) => MON[m % 12] + (m % 12 === 0 ? ' ' + yearOf(m) : '')
 
   return (
-    <div className="tbar glass" id="tbar">
+    <div className="tbar" id="tbar">
       <button className="tplay" id="tplay" type="button" aria-label={label} data-icon={icon} onClick={onPlay}><PlayIcon className="i" /></button>
       <div className="ttrk">
         <div className="lane tlabels" id="tlabels" aria-hidden="true">
