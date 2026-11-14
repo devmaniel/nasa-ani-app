@@ -3,6 +3,7 @@ import calendar from '../assets/calendar.webp'
 import cropsShot from '../assets/cropsShot.webp'
 import drop from '../assets/drop.webp'
 import field from '../assets/field.webp'
+import fieldSmall from '../assets/field-1086.webp'
 import guidebook from '../assets/guidebook.webp'
 import reportShot from '../assets/reportShot.webp'
 import salakot from '../assets/salakot.webp'
@@ -41,12 +42,12 @@ export function HomePage() {
             <p className="lede">NASA's rain, heat and soil data for your place, in plain words. See the months ahead and what to plant.</p>
             <div className="acts"><MapCta /></div>
           </div>
-          <img className="field" src={field} width="2172" height="484" alt="A watercolor rice field: a farmer ploughs with his carabao, a couple plants rice seedlings, and three children run along the dike." />
+          <img className="field" src={field} srcSet={`${fieldSmall} 1086w, ${field} 2172w`} sizes="100vw" width="2172" height="484" fetchPriority="high" alt="A watercolor rice field: a farmer ploughs with his carabao, a couple plants rice seedlings, and three children run along the dike." />
         </section>
 
         <section className="sec">
           <div className="col center">
-            <h2 className="h3 rv" data-rv>Built for the farm, <img className="hi hat" src={salakot} alt="" /> not just the forecast.</h2>
+            <h2 className="h3 rv" data-rv>Built for the farm, <img className="hi hat" src={salakot} loading="lazy" alt="" /> not just the forecast.</h2>
             <ul className="trio rv" data-rv>
               <li><b>Free</b>Nothing to pay.</li>
               <li><b>No sign up</b>No account, no email.</li>
@@ -88,19 +89,19 @@ export function HomePage() {
                 <article className="card short rv" data-rv style={{ background: 'var(--mist-200)' }}>
                   <h3 className="h3">Rain and heat, checked</h3>
                   <p>Each growing month is held up against what the crop needs.</p>
-                  <img className="big" src={thermometer} alt="" />
+                  <img className="big" src={thermometer} loading="lazy" alt="" />
                 </article>
               </div>
               <div className="c2">
                 <article className="card short rv" data-rv style={{ background: 'var(--lime-200)' }}>
                   <h3 className="h3">The best month to plant</h3>
                   <p>The month to plant inside your dates, and the month it's ready.</p>
-                  <img className="big" src={calendar} alt="" />
+                  <img className="big" src={calendar} loading="lazy" alt="" />
                 </article>
                 <article className="card tall rv" data-rv style={{ background: 'var(--sand-50)' }}>
                   <h3 className="h3">A growing guide</h3>
                   <p>Eight short topics for each crop, from getting the land ready to the harvest.</p>
-                  <img className="big" src={guidebook} alt="" />
+                  <img className="big" src={guidebook} loading="lazy" alt="" />
                 </article>
               </div>
             </div>
