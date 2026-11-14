@@ -1,0 +1,86 @@
+import { LOOKS, type Kind, type MapLayer, type MapPicture } from '../climateLayer'
+import { M0, mName, MONTH_FULL } from '../dates'
+import type { LayerView } from '../hooks/useClimateLayer'
+
+const KIND_WORD: Record<Kind, (m: number) => string> = {
+  past: (m) => 'Measured in ' + mName(m),
+  forecast: (m) => 'Forecast for ' + mName(m),
+  usual: (m) => 'Usual for ' + MONTH_FULL[m % 12],
+  estimate: (m) => 'Estimate for ' + mName(m),
+}
+const SOURCE: Record<Kind, string> = {
+  past: 'NASA POWER, measured that month',
+  forecast: 'Open-Meteo seasonal forecast (not NASA)',
+  usual: 'NASA POWER, 25-year average',
+  estimate: 'NASA POWER usual soil, nudged by the forecast rain',
+}
+/* a band's lower value on the colour key, and the centre's value in words */
+const BAND: Record<MapLayer, (v: number) => string> = {
+  rain: String,
+  heat: String,
+  soil: (v) => Math.round(v * 100) + '%',
+}
+const VALUE: Record<MapLayer, (v: number) => string> = {
+  rain: (v) => Math.round(v) + ' mm',
+  heat: (v) => v.toFixed(1) + '°C',
+  soil: (v) => Math.round(v * 100) + '% wet',
+}
+
+/* which NASA picture is on the map: the latest, or the month's own */
+const pictureWord = (p: MapPicture, m: number) => (p.time === 'default' ? 'the latest satellite view' : "NASA's satellite view for " + mName(m))
+
+/* the key under the layer chips: the month and how sure (measured, forecast, usual or estimate), the value at the map centre,
+   what the colours mean, the source, and which NASA picture is on the map */
+export function LayerLegend({ view }: { view: LayerView }) {
+  const { layer, kind, month, live, value, picture } = view
+  if (layer === 'plants') return <PlantsKey month={month} picture={picture} />
+  const look = LOOKS[layer]
+  return (
+    <div className="lkey glass" role="status">
+      {view.status === 'error' && <p className="lk-t">Couldn't load {look.name.toLowerCase()} here. Move the map to try again.</p>}
+      {view.status === 'loading' && <p className="lk-t">Loading {look.name.toLowerCase()}…</p>}
+      {kind && view.status === 'ready' && (
+        <>
+          <p className="lk-t"><b>{look.name}</b> · {live ? 'This month · ' : ''}{KIND_WORD[kind](month)}</p>
+          <p className="lk-v">At the map centre: <b>{value === null ? 'no data here' : VALUE[layer](value)}</b></p>
+          <ol className="lk-bar" aria-label={'Colour key, ' + look.unit}>
+            {look.bands.map(([v, c]) => <li key={v} style={{ '--c': c ?? 'transparent' }} data-none={c ? undefined : ''}>{BAND[layer](v)}</li>)}
+          </ol>
+          <p className="lk-s">{look.unit} · {SOURCE[kind]}</p>
+          {picture && <p className="lk-s">On the map: {pictureWord(picture, month)}, {picture.source} (NASA's colours)</p>}
+          {view.limited && <p className="lk-s">Zoom in to colour all the land in view.</p>}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* a label on the map, over the time bar, when the month has no real data: no forecast this far ahead, not measured yet,
+   or no plant picture; the colours then show NASA's usual for the month */
+export function NoDataBadge({ view }: { view: LayerView }) {
+  const { layer, month, kind, picture } = view
+  const usualWord = 'showing the usual ' + MONTH_FULL[month % 12]
+  const text = layer === 'plants'
+    ? picture ? null : month > M0 ? 'No forecast for plants' : 'No plant picture for ' + mName(month)
+    : kind !== 'usual' ? null : month > M0 ? 'No forecast for ' + mName(month) + ' · ' + usualWord : 'Not measured yet for ' + mName(month) + ' · ' + usualWord
+  return text ? <p className="nofc glass" role="status">{text}</p> : null
+}
+
+/* Plants has NASA's pictures only: the latest this month, the month's own for past months from July 2002; nobody forecasts plant greenness */
+function PlantsKey({ month, picture }: { month: number; picture: MapPicture | null }) {
+  const ahead = month > M0
+  return (
+    <div className="lkey glass" role="status">
+      <p className="lk-t">
+        <b>Plants</b> · {picture ? (picture.time === 'default' ? 'Latest satellite view' : 'Satellite view for ' + mName(month)) : ahead ? 'No forecast for plants' : 'No plant picture for ' + mName(month)}
+      </p>
+      <p className="lk-s">
+        {picture
+          ? 'Greener means more growing plants · ' + picture.source + " (NASA's colours)"
+          : ahead
+            ? 'NASA only has satellite views of what already happened. Move the time bar back to Today, or pick past dates.'
+            : "NASA's monthly plant pictures run from July 2002 to about two months ago."}
+      </p>
+    </div>
+  )
+}

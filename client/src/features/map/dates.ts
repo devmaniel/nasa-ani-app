@@ -1,4 +1,4 @@
-/* Time: today on, never the past. A month is counted as year * 12 + month. */
+/* Time: from 1981 (NASA's oldest monthly numbers) to three years ahead. A month is counted as year * 12 + month. */
 export const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 export const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -34,6 +34,7 @@ export function parseIso(v: string) {
 
 export const M0 = monthIndex(TODAY)
 export const MAX_END = monthEnd(M0 + AHEAD_MONTHS)
+export const PAST_FROM = new Date(1981, 0, 1) /* NASA POWER's measured monthly numbers start in January 1981 */
 
 export function addDays(d: Date, n: number) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
