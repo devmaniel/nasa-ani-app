@@ -18,6 +18,7 @@
     "date-fns": "^4.4.0",
     "lucide-react": "^1.70.0",
     "maplibre-gl": "^6.16.0",
+    "polyclip-ts": "^0.16.8",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-day-picker": "^10.0.2",
