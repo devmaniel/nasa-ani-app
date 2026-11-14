@@ -1,0 +1,145 @@
+/* Landing page styles, copied from artifacts/landing-2026-11-13/landing.html. */
+/* Scoped to the page root and in the "page" layer (see src/index.css), like the map page.
+   html/body rules live on the root; the phone menu's open state comes from the button's aria-expanded. */
+@layer page {
+/* ---------- tokens (snapshot of the master's :root, unchanged) ---------- */
+[data-name="Landing"]{
+  --milk:#fff; --sand-50:#f1f0ee; --sand-100:#fefdfb; --sand-150:#faf8f5; --sand-200:#ebe9e6; --sand-300:#d9d7d4;
+  --mist-100:#bee3ff; --mist-200:#ecf7ff; --peach-300:#fff0f0;
+  --black:#0a0b0f; --ink:#08090a; --green:#0c8c5e; --brown:#8f5410; --gray:#717d79;
+  --lime:#c9fd58; --leaf:#8eee73; --mint:#69df9f; --lime-200:#f2fed5; --mint-200:#daf7e7;
+  --rain:#1f78c1; --heat:#cf3f42;
+  --serif:"PP Kyoto", Rockwell, "Roboto Slab", "American Typewriter", Georgia, serif;
+  --sans:"PP Agrandir Variable", "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+  --line:rgba(8,9,10,.1); --muted:rgba(8,9,10,.7);
+  --pad:16px; --sec:56px;
+}
+@media (min-width:768px){[data-name="Landing"]{--pad:32px;--sec:80px}}
+
+[data-name="Landing"] *,[data-name="Landing"] *::before,[data-name="Landing"] *::after{box-sizing:border-box}
+
+[data-name="Landing"]{margin:0;background:var(--sand-100);color:var(--ink);font-family:var(--sans);font-weight:500;font-size:17px;line-height:1.5;overflow-x:hidden}
+[data-name="Landing"] img,[data-name="Landing"] svg{display:block;max-width:100%}
+[data-name="Landing"] a{color:inherit;text-decoration:none}
+[data-name="Landing"] button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+[data-name="Landing"] h1,[data-name="Landing"] h2,[data-name="Landing"] h3{margin:0;font-weight:700}
+[data-name="Landing"] p,[data-name="Landing"] ul,[data-name="Landing"] ol{margin:0}
+[data-name="Landing"] ul,[data-name="Landing"] ol{padding:0;list-style:none}
+[data-name="Landing"] .skip{position:absolute;left:-9999px;top:8px;z-index:200;padding:8px 12px;background:var(--ink);color:var(--sand-100);font-size:13px;border-radius:8px}
+[data-name="Landing"] .skip:focus{left:8px}
+[data-name="Landing"] :focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:999px}
+[data-name="Landing"] .brand{display:block;aspect-ratio:433/180;background:url(../../../shared/assets/logo.png) center/contain no-repeat}
+[data-name="Landing"] .wrap{max-width:1280px;margin:0 auto;padding:0 var(--pad)}
+
+/* ---------- type ---------- */
+[data-name="Landing"] .h1{font-size:clamp(40px,5.2vw,76px);line-height:1;letter-spacing:-.035em;text-wrap:balance}
+[data-name="Landing"] .h2{font-size:clamp(38px,4.4vw,56px);line-height:1.02;letter-spacing:-.035em;text-wrap:balance}
+[data-name="Landing"] .h3{font-size:clamp(30px,3.2vw,44px);line-height:1.12;letter-spacing:-.03em;text-wrap:balance}
+[data-name="Landing"] .eyebrow{font-size:clamp(17px,1.4vw,20px);line-height:1.5;font-weight:700;color:var(--ac)}
+[data-name="Landing"] .eyebrow+.h2{margin-top:20px}
+[data-name="Landing"] .lede{max-width:640px;margin-top:24px;font-size:clamp(18px,1.4vw,20px);line-height:1.6;color:var(--muted);text-wrap:pretty}
+
+/* ---------- the one call to action: Earth sticker + text, no button ---------- */
+[data-name="Landing"] .cta{display:inline-flex;align-items:center;gap:10px;min-height:48px;font-size:clamp(18px,1.4vw,20px);font-weight:700;line-height:1.2;white-space:nowrap;transition:color 150ms ease-out}
+[data-name="Landing"] .cta img{width:44px;height:44px;object-fit:contain;transition:transform 300ms ease-out}
+[data-name="Landing"] .cta:hover{color:var(--green)}
+[data-name="Landing"] .cta:hover img{transform:rotate(-18deg)}
+
+/* ---------- reveal on view ---------- */
+[data-name="Landing"] .rv{opacity:0;transform:translateY(12px);transition-property:opacity,transform;transition-duration:600ms;transition-timing-function:ease-out}
+[data-name="Landing"] .rv.in{opacity:1;transform:none}
+
+/* ---------- header: hidden on the hero, slides in once the headline is passed ---------- */
+[data-name="Landing"] .hdr{position:fixed;top:0;left:0;right:0;z-index:50;padding:10px 0;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(-110%);transition:transform 300ms ease-out,opacity 200ms ease-out,visibility 0s linear 300ms}
+[data-name="Landing"] .hdr.show{opacity:1;visibility:visible;transform:none;transition:transform 300ms ease-out,opacity 200ms ease-out,visibility 0s}
+[data-name="Landing"] .hdr .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px}
+[data-name="Landing"] .pn{pointer-events:auto;display:flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:var(--sand-50);border:1px solid var(--line);box-shadow:0 4px 16px rgba(8,9,10,.06)}
+[data-name="Landing"] .pn .logo{display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;background:var(--milk)}
+[data-name="Landing"] .pn .logo .brand{height:24px}
+[data-name="Landing"] .pn .nl{display:none;align-items:center;height:40px;padding:0 14px;border-radius:999px;font-size:15px;font-weight:600;transition:background-color 150ms ease-out}
+[data-name="Landing"] .pn .nl:hover{background:var(--milk)}
+[data-name="Landing"] .pn .cta{display:none;min-height:40px;gap:8px;padding:0 8px 0 14px;font-size:15px}
+[data-name="Landing"] .pn .cta img{width:28px;height:28px}
+[data-name="Landing"] .menu-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;font-size:15px;font-weight:600}
+[data-name="Landing"] .menu-btn span{position:relative;width:16px;height:10px}
+[data-name="Landing"] .menu-btn span::before,[data-name="Landing"] .menu-btn span::after{content:"";position:absolute;left:0;right:0;height:2px;border-radius:2px;background:currentColor;transition:transform 200ms ease-out}
+[data-name="Landing"] .menu-btn span::before{top:0}
+[data-name="Landing"] .menu-btn span::after{bottom:0}
+[data-name="Landing"] .menu-btn[aria-expanded="true"] span::before{transform:translateY(4px) rotate(45deg)}
+[data-name="Landing"] .menu-btn[aria-expanded="true"] span::after{transform:translateY(-4px) rotate(-45deg)}
+@media (min-width:900px){[data-name="Landing"] .pn .nl,[data-name="Landing"] .pn .cta{display:inline-flex}[data-name="Landing"] .menu-btn{display:none}}
+[data-name="Landing"] .menu{position:fixed;inset:0;z-index:40;background:var(--sand-100);padding:96px var(--pad) 40px}
+[data-name="Landing"] .menu[hidden]{display:none}
+[data-name="Landing"] .menu a:not(.cta){display:block;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.15;padding:14px 0;border-bottom:1px solid var(--line)}
+[data-name="Landing"] .menu .cta{margin-top:32px;font-size:22px}
+
+/* ---------- hero: name, big headline with icons in the words, then the field ---------- */
+[data-name="Landing"] .hero{padding-top:clamp(40px,8vh,88px);text-align:center}
+[data-name="Landing"] .hero-brand{display:inline-block}
+[data-name="Landing"] .hero-brand .brand{height:36px}
+[data-name="Landing"] .hero .h1{margin-top:clamp(20px,4vh,36px)}
+[data-name="Landing"] .hero .lede{max-width:56ch;margin:24px auto 0}
+[data-name="Landing"] .hi{display:inline-block;width:.9em;height:.9em;margin:0 .02em;vertical-align:-.1em;object-fit:contain}
+[data-name="Landing"] .acts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:32px}
+[data-name="Landing"] .field{display:block;width:100%;height:auto;margin-top:clamp(32px,5vh,56px)}
+
+/* ---------- sections: one 976px column, each with its own colour ---------- */
+[data-name="Landing"] .sec{--ac:var(--green);--tint:var(--mint-200);padding:var(--sec) 0;scroll-margin-top:24px}
+[data-name="Landing"] #weather{--ac:var(--rain);--tint:color-mix(in srgb,var(--rain) 16%,var(--milk))}
+[data-name="Landing"] #report{--ac:var(--brown);--tint:color-mix(in srgb,var(--brown) 14%,var(--milk))}
+[data-name="Landing"] .col{max-width:calc(976px + var(--pad) * 2);margin:0 auto;padding:0 var(--pad)}
+[data-name="Landing"] .center{text-align:center}
+[data-name="Landing"] .center .lede{margin-inline:auto}
+
+/* built for: big line with the salakot in it, then three short points */
+[data-name="Landing"] .hi.hat{width:auto;height:1.15em;margin:0 .12em;vertical-align:-.3em}
+[data-name="Landing"] .trio{display:grid;grid-template-columns:repeat(3,minmax(0,200px));justify-content:center;gap:24px clamp(16px,4vw,48px);margin-top:clamp(40px,5vw,64px);text-align:center}
+[data-name="Landing"] .trio li{display:grid;justify-items:center;gap:6px;font-size:clamp(16px,1.4vw,19px);line-height:1.5;color:var(--muted);text-wrap:balance}
+[data-name="Landing"] .trio b,[data-name="Landing"] .four b{font-size:clamp(22px,2.2vw,28px);line-height:1.2;letter-spacing:-.02em;color:var(--ink)}
+
+/* feature list: two columns of names on hairlines */
+[data-name="Landing"] .feats{display:grid;gap:0 48px;max-width:640px;margin-top:44px}
+@media (min-width:560px){[data-name="Landing"] .feats{grid-template-columns:1fr 1fr}}
+[data-name="Landing"] .feats li{padding:14px 0;border-top:1px solid var(--line);font-size:clamp(17px,1.4vw,20px);font-weight:700;line-height:1.4}
+
+/* tinted panel with a real app screen, cut off at the bottom */
+[data-name="Landing"] .panel{margin-top:clamp(48px,6vw,72px);border-radius:24px;background:var(--tint);padding:20px 14px 0;overflow:hidden}
+@media (min-width:768px){[data-name="Landing"] .panel{padding:40px 40px 0}}
+[data-name="Landing"] .shot{display:block;width:100%;height:auto;margin-bottom:-9%;border-radius:10px;box-shadow:0 1px 2px rgba(8,9,10,.05),0 12px 32px rgba(8,9,10,.1)}
+
+/* what to plant: four cards in two staggered columns */
+[data-name="Landing"] .bento{display:grid;gap:20px;margin-top:clamp(48px,6vw,72px)}
+[data-name="Landing"] .bento .c2{display:grid;gap:20px;align-content:start}
+@media (min-width:768px){[data-name="Landing"] .bento{grid-template-columns:1fr 1fr;gap:24px}[data-name="Landing"] .bento .c2{gap:24px}}
+[data-name="Landing"] .card{position:relative;display:flex;flex-direction:column;border-radius:24px;padding:clamp(24px,3vw,36px);overflow:hidden;background:var(--bg)}
+[data-name="Landing"] .card .h3{font-size:clamp(28px,2.6vw,40px)}
+[data-name="Landing"] .card p{max-width:34ch;margin-top:14px;font-size:clamp(17px,1.3vw,19px);line-height:1.55;color:var(--muted);text-wrap:pretty}
+[data-name="Landing"] .card .big{width:clamp(150px,16vw,200px);height:auto;margin:auto auto 0;padding-top:32px}
+[data-name="Landing"] .card.tall{min-height:clamp(440px,50vw,600px)}
+[data-name="Landing"] .card.short{min-height:clamp(360px,38vw,460px)}
+[data-name="Landing"] .card .side{width:min(calc(100% + clamp(24px,3vw,36px)),400px);height:auto;margin:32px calc(clamp(24px,3vw,36px) * -1) calc(clamp(24px,3vw,36px) * -1) auto;border-radius:14px 0 0 0;box-shadow:0 1px 2px rgba(8,9,10,.05),0 12px 32px rgba(8,9,10,.1)}
+
+/* ---------- ready ---------- */
+[data-name="Landing"] .h3 .soft{display:block;color:rgba(8,9,10,.4)}
+[data-name="Landing"] .four{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 24px;max-width:880px;margin:clamp(40px,5vw,64px) auto 0;text-align:center}
+@media (min-width:768px){[data-name="Landing"] .four{grid-template-columns:repeat(4,minmax(0,1fr))}}
+[data-name="Landing"] .four li{display:grid;justify-items:center;align-content:start;gap:6px;font-size:clamp(16px,1.3vw,18px);line-height:1.5;color:var(--muted);text-wrap:balance}
+[data-name="Landing"] .ready .cta{margin-top:clamp(40px,5vw,56px)}
+
+/* ---------- footer ---------- */
+[data-name="Landing"] footer{padding:var(--sec) 0 56px}
+[data-name="Landing"] .ft{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:40px;padding-top:48px;border-top:1px solid var(--line)}
+[data-name="Landing"] .ft-brand .brand{height:44px}
+[data-name="Landing"] .ft-brand p{margin-top:14px;max-width:18ch;font-size:22px;font-weight:700;line-height:1.2;letter-spacing:-.02em}
+[data-name="Landing"] .ft-nav{display:flex;flex-wrap:wrap;gap:40px 72px;font-size:16px}
+[data-name="Landing"] .ft-nav h3{font-size:16px}
+[data-name="Landing"] .ft-nav ul{display:grid;gap:10px;margin-top:14px;color:var(--muted)}
+[data-name="Landing"] .ft-nav a{transition:color 150ms ease-out}
+[data-name="Landing"] .ft-nav a:hover{color:var(--ink)}
+
+@media (prefers-reduced-motion:reduce){
+[data-name="Landing"] .rv{opacity:1;transform:none;transition:none}
+[data-name="Landing"] .hdr,[data-name="Landing"] .hdr.show{transform:none;transition:none}
+[data-name="Landing"] .cta,[data-name="Landing"] .cta img,[data-name="Landing"] .pn .nl{transition:none}
+}
+}
