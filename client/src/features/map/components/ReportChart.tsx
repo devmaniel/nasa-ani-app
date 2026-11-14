@@ -1,9 +1,9 @@
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/shared/ui/chart'
 import { HEAT_COLOR } from '../chartColors'
-import { rainAt, rainWord, tempAt, usualRain, usualTemp, type Point } from '../climate'
+import { rainWord } from '../climate'
 import { isLessSure, M0, mName, seasonKey, seasonsIn, SEASON_NAME, type Span } from '../dates'
-import { monthLabel, monthsText, niceTop, rainOff, skyOf } from '../report'
+import { monthLabel, monthsText, niceTop, rainOff, skyOf, type PlaceWeather } from '../report'
 import { AXIS_W, RainStackChart } from './RainStackChart'
 
 type Month = { key: string; m: number; rain: number; usual: number; heat: number }
@@ -12,10 +12,11 @@ const RAIN_H = 240
 const HEAT_H = 150
 const CONFIG = { heat: { label: 'Heat', color: HEAT_COLOR } } satisfies ChartConfig
 
-function monthsOf(p: Point, w: Span) {
+function monthsOf(pw: PlaceWeather, w: Span) {
   const ms: Month[] = []
   for (let m = w.a; m <= w.b; m++) {
-    ms.push({ key: String(m), m, rain: Math.round(rainAt(p, m)), usual: Math.round(usualRain(p, m)), heat: Math.round(tempAt(p, m) * 10) / 10 })
+    const x = pw.at(m)
+    ms.push({ key: String(m), m, rain: Math.round(x.rain), usual: Math.round(x.usualRain), heat: Math.round(x.heat * 10) / 10 })
   }
   return ms
 }
@@ -27,8 +28,8 @@ function tipLabel(key: unknown) {
 
 /* month by month: rain against a usual year, then heat, on the same months (two charts, never two scales on one).
    Hovering a month shows its numbers in the chart under the pointer only. */
-export function ReportChart({ p, w }: { p: Point; w: Span }) {
-  const ms = monthsOf(p, w)
+export function ReportChart({ pw, w }: { pw: PlaceWeather; w: Span }) {
+  const ms = monthsOf(pw, w)
   const n = ms.length
   const top = niceTop(Math.max(...ms.map((x) => x.rain + x.usual))) /* the bars stack rain on usual */
   const tLo = Math.floor(Math.min(...ms.map((x) => x.heat)) - 0.3)
@@ -64,28 +65,27 @@ export function ReportChart({ p, w }: { p: Point; w: Span }) {
 }
 
 /* the numbers behind the charts, one row per month, grouped by season */
-export function ReportMonths({ p, w }: { p: Point; w: Span }) {
+export function ReportMonths({ pw, w }: { pw: PlaceWeather; w: Span }) {
   return (
     <>
       {seasonsIn(w.a, w.b).map((sg) => {
         const rows = []
         for (let m = sg.a; m <= sg.b; m++) {
-          const r = rainAt(p, m)
-          const t = tempAt(p, m)
-          const dt = t - usualTemp(p, m)
+          const { rain: r, usualRain, heat: t, usualHeat } = pw.at(m)
+          const dt = t - usualHeat
           const [Ic, word] = skyOf(r)
           rows.push(
             <li key={m} className="rp-mo">
               <span className="m num">{mName(m)}</span>
               <span className="w"><Ic className="i" aria-hidden />{word}{m === M0 && <span className="tag now-t">Now</span>}{isLessSure(m) && <span className="tag">Less sure</span>}</span>
-              <span className="r num">{Math.round(r)} mm<small>usual {Math.round(usualRain(p, m))}</small></span>
+              <span className="r num">{Math.round(r)} mm<small>usual {Math.round(usualRain)}</small></span>
               <span className="t num">{t.toFixed(1)}°<small>{dt >= 0.2 ? '+' + dt.toFixed(1) : dt <= -0.2 ? '−' + Math.abs(dt).toFixed(1) : 'usual'}</small></span>
             </li>,
           )
         }
         return (
           <div key={sg.a} className={sg.k}>
-            <p className="rp-sg"><b>{SEASON_NAME[sg.k]}</b><span className="num">{monthsText(sg.a, sg.b)} · rain likely {rainWord(1 - rainOff(p, sg.a, sg.b))}</span></p>
+            <p className="rp-sg"><b>{SEASON_NAME[sg.k]}</b><span className="num">{monthsText(sg.a, sg.b)} · rain likely {rainWord(1 - rainOff(pw, sg.a, sg.b))}</span></p>
             <ul>{rows}</ul>
           </div>
         )

@@ -1,7 +1,7 @@
 import { Cloud, Sprout, Sun } from 'lucide-react'
 import { TbRipple } from 'react-icons/tb'
 import type { ReactNode } from 'react'
-import { heatWord, meanOf, pct, rainWord, SOIL_WORDS, type Point } from '../climate'
+import { heatWord, meanOf, pct, rainWord, SOIL_WORDS, soilLevel, type Point } from '../climate'
 import type { Kind, MapLayer } from '../climateLayer'
 import { fromWord, fmtY, lengthWord, M0, MON, mName, seasonsIn, SEASON_NAME, yearOf, type Dates, type Span } from '../dates'
 import { barsEnd, type Weather } from '../hooks/useWeather'
@@ -11,9 +11,6 @@ import { RainBars } from './RainBars'
 import { Level, Meter } from './Parts'
 
 const RAIN_HEADROOM = 1.25
-/* NASA's root-zone wetness (0 dry to 1 soaked): under SOIL_MOIST is Dry, from SOIL_WET up is Wet (where the map turns green) */
-const SOIL_MOIST = 0.5
-const SOIL_WET = 0.7
 
 /* a month of one layer, averaged over the points: its value, NASA's usual, and where the value comes from */
 type Row = { m: number; v: number; usual: number; kind: Kind }
@@ -119,7 +116,7 @@ function Tiles({ wx, pts, rain, w, ...lp }: LayerProps & { wx: Weather; pts: Poi
   const kick = !real ? 'Your dates · ' + noData(w.a).toLowerCase() + ', so the usual'
     : rr.length === rain.length ? (w.a === w.b ? 'This month' : 'Across your dates')
     : rr.length === 1 ? 'In ' + mName(rr[0].m) + ', the month with data' : 'Across the ' + rr.length + ' months with data'
-  const level = soil ? (soil.v < SOIL_MOIST ? 0 : soil.v < SOIL_WET ? 1 : 2) : 0
+  const level = soil ? soilLevel(soil.v) : 0
   return (
     <>
       <p className="kick">{kick}</p>

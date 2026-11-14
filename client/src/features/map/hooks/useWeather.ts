@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Point } from '../climate'
 import type { CropWeather } from '../crops'
 import { M0, type Span } from '../dates'
@@ -50,13 +50,14 @@ export function useWeather(pts: Point[], months: number[]): Weather {
 
   const keys = LAYERS.flatMap((l) => tiles.flatMap((t) => years.map((y) => gridKey(l, t, y))))
   const status = keys.some((k) => grids[k] === null) ? 'error' : keys.every((k) => grids[k]) ? 'ready' : 'loading'
-  const at = (layer: MapLayer, p: Point, m: number): MonthValue | null => {
+  /* the same object until the data changes, so work done on it can be kept between redraws */
+  const at = useCallback((layer: MapLayer, p: Point, m: number): MonthValue | null => {
     const g = grids[gridKey(layer, tileAt(p.lon, p.lat), pastYear(m))]
     const kind = g ? kindOf(layer, m, g) : null
     if (!g || !kind) return null
     const v = valueAt(layer, kind, m, g, p.lon, p.lat)
     const usual = valueAt(layer, 'usual', m, g, p.lon, p.lat)
     return v === null || usual === null ? null : { v, usual, kind }
-  }
-  return { status, at }
+  }, [grids])
+  return useMemo(() => ({ status, at }), [status, at])
 }

@@ -104,7 +104,7 @@ export function ReportHead({ place, dates, w, loading, moves, alerts, headingRef
             <div><Sk w="80%" h={14} /><Sk w="60%" h={12} /></div>
             <Sk w="150px" h={40} />
           </>
-        ) : <Answer moves={moves} alerts={alerts} onGoMoves={onGoMoves} />}
+        ) : moves.length > 0 && alerts.length > 0 && <Answer moves={moves} alerts={alerts} onGoMoves={onGoMoves} />}
       </div>
       {one && (
         <p className="rp-notice" id="rp-notice">
