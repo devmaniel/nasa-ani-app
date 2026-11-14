@@ -21,6 +21,8 @@ export function PlaceSearch({ recent, onGo, onLocate }: Props) {
   const [status, setStatus] = useState<Status>('idle')
   const barRef = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<SessionToken | null>(null)
+  /* counts picks and typing: Google's answer for an older pick is dropped, so the map can't land on a place picked before */
+  const pickRef = useRef(0)
   const q = query.trim()
 
   const goTo = (p: Place) => {
@@ -28,10 +30,14 @@ export function PlaceSearch({ recent, onGo, onLocate }: Props) {
     onGo(p)
   }
   const pick = (s: Suggestion) => {
+    const id = ++pickRef.current
     setText(s.name)
     sessionRef.current = null /* picking a place ends the search session */
-    placeOf(s).then(onGo).catch((err: unknown) => {
+    placeOf(s).then((p) => {
+      if (id === pickRef.current) onGo(p)
+    }).catch((err: unknown) => {
       console.error('Google place details failed', err)
+      if (id !== pickRef.current) return
       setFound([])
       setStatus('error')
       setOpen(true)
@@ -71,6 +77,7 @@ export function PlaceSearch({ recent, onGo, onLocate }: Props) {
     setAct(value.trim() ? 0 : -1)
   }
   const run = (it: Item) => {
+    pickRef.current++ /* any choice (a recent place, my location) replaces a pick still waiting on Google */
     setOpen(false)
     it.go()
   }
@@ -111,6 +118,7 @@ export function PlaceSearch({ recent, onGo, onLocate }: Props) {
           value={text}
           onChange={(e) => {
             const v = e.target.value
+            pickRef.current++ /* typing again drops a pick still waiting on Google */
             setText(v)
             setQuery(v)
             /* an empty box drops old matches; typed text waits for Google */

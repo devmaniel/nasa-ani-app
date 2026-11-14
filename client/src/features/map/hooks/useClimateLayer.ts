@@ -147,18 +147,21 @@ export function useClimateLayer(map: MapLibreMap | null, layer: LayerKey | null,
     }
   }, [shown, tilesKey, year])
 
-  /* the data at the centre for every year the dates cover, for the time bar */
+  /* the data for every tile in view and every year the dates cover, loaded ahead: the time bar's colours need the centre's,
+     and Play needs the rest, or a new year would show only the centre's colours while the other tiles load */
   useEffect(() => {
-    if (!shown || !centreTile) return
+    if (!shown || !tilesKey) return
     for (const y of yearsKey.split('|')) {
       const yr = y === 'now' ? null : Number(y)
-      const k = gridKey(shown, centreTile, yr)
-      loadGrid(shown, centreTile, yr).then((g) => setGrids((all) => (all[k] === g ? all : { ...all, [k]: g }))).catch((err: unknown) => {
-        console.error('NASA POWER request failed', err)
-        setGrids((all) => ({ ...all, [k]: null }))
-      })
+      for (const t of tilesKey.split('|')) {
+        const k = gridKey(shown, t, yr)
+        loadGrid(shown, t, yr).then((g) => setGrids((all) => (all[k] === g ? all : { ...all, [k]: g }))).catch((err: unknown) => {
+          console.error('NASA POWER request failed', err)
+          setGrids((all) => ({ ...all, [k]: null }))
+        })
+      }
     }
-  }, [shown, centreTile, yearsKey])
+  }, [shown, tilesKey, yearsKey])
 
   /* colour the land for the month once the centre's data is in; until then the last colours stay (same layer), so playing never blinks */
   useEffect(() => {
