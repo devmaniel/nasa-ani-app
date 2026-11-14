@@ -2,7 +2,7 @@ import { ImageSource, RasterTileSource, type MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import { nasaTiles } from '../api'
 import {
-  areaPicture, cssColor, isLive, kindOf, loadGrid, LOOKS, pastYear, pictureFor, tileAt, tilesIn, valueAt,
+  areaPicture, cssColor, gridKey, isLive, kindOf, loadGrid, LOOKS, pastYear, pictureFor, tileAt, tilesIn, valueAt,
   type AreaPicture, type AreaTile, type Grid, type Kind, type MapLayer, type MapPicture,
 } from '../climateLayer'
 import type { Span } from '../dates'
@@ -30,7 +30,6 @@ type View = { lon: number; lat: number; w: number; s: number; e: number; n: numb
 /* the colours are two pictures taking turns, so a new month fades in over the last; key: what the front one shows */
 type Painted = { front: 'a' | 'b'; key: string; layer: MapLayer | null }
 
-const gridKey = (layer: MapLayer, tile: string, year: number | null) => layer + ':' + tile + ':' + (year ?? 'now')
 const areaId = (side: 'a' | 'b') => AREA_PREFIX + side
 
 /* the first of the map's own layers with this id, else its first name layer */

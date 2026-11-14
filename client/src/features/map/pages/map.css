@@ -82,7 +82,7 @@ section[data-name="Map"] .tabb:hover::after,section[data-name="Map"] .tabb:focus
 section[data-name="Map"] .sb{--sb-in:40px;position:fixed;z-index:14;top:var(--top);right:0;bottom:0;width:calc(var(--rl) + var(--sw));display:flex;flex-direction:column;background:var(--milk);animation:sb-in 180ms ease-out}
 @keyframes sb-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
 section[data-name="Map"] .sb-h{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:18px 12px 16px var(--sb-in);border-bottom:1px solid var(--on-line)}
-section[data-name="Map"] .sb-hd{min-width:0}
+section[data-name="Map"] .sb-hd{flex:1;min-width:0} /* fills the row, so the loading shapes (sized in %) have a width */
 section[data-name="Map"] .sb-h h2{margin-top:2px;font-family:var(--serif);font-size:26px;line-height:1.1}
 section[data-name="Map"] .sb-h .k{margin-top:2px;font-size:12px;color:var(--on-mute)}
 section[data-name="Map"] .x{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:999px;color:var(--on-mute);transition:background-color 150ms ease-out,color 150ms ease-out}
@@ -405,7 +405,9 @@ section[data-name="Map"] .src{margin-top:auto;padding:12px var(--sb-in, 20px) 16
 }
 /* ---- skeleton loading: grey shapes stand in for a moment while the map, the sidebar or a guide "loads" ---- */
 @keyframes sk-shine{from{background-position:100% 0}to{background-position:0 0}}
-section[data-name="Map"] .sk{display:block;max-width:100%;border-radius:8px;background:linear-gradient(90deg,var(--sand-50) 0%,var(--sand-150) 45%,var(--sand-50) 90%) 0 0/300% 100%;animation:sk-shine 1.2s ease-in-out infinite}
+/* one shine for every grey shape: a 600px band repeated across the screen (fixed) and slid along, so they all sweep together */
+@keyframes sk-sweep{from{background-position:0 0}to{background-position:600px 0}}
+section[data-name="Map"] .sk{display:block;max-width:100%;border-radius:8px;background:linear-gradient(90deg,var(--sand-50) 0%,var(--sand-150) 45%,var(--sand-50) 90%) 0 0/600px 100% fixed;animation:sk-sweep 1.2s linear infinite}
 section[data-name="Map"] .sk+.sk{margin-top:8px}
 section[data-name="Map"] .sk-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 16px}
 section[data-name="Map"] .sk-tiles .sk{margin:0;border-radius:14px}

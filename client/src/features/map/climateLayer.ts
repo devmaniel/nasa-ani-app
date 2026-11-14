@@ -159,6 +159,9 @@ export async function loadGrid(layer: MapLayer, tile: string, year: number | nul
   return { usual, rain, forecast, past }
 }
 
+/* a loaded grid's name: layer, tile, and the past year ('now' for this month on) */
+export const gridKey = (layer: MapLayer, tile: string, year: number | null) => layer + ':' + tile + ':' + (year ?? 'now')
+
 /* this month: NASA's latest satellite picture is on the map */
 export const isLive = (m: number) => m === M0
 /* the year to measure for a past month, null for now and ahead */

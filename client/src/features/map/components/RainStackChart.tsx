@@ -11,7 +11,8 @@ const CONFIG = {
   rain: { label: 'Rain', color: RAIN_COLOR },
 } satisfies ChartConfig
 
-export type RainMonth = { key: string; m: number; rain: number; usual: number }
+/* rain: null for a month with no forecast or measurement (only the usual bar shows) */
+export type RainMonth = { key: string; m: number; rain: number | null; usual: number }
 
 function TipRow({ color, label, value }: { color: string; label: string; value: string }) {
   return (
@@ -24,13 +25,15 @@ function TipRow({ color, label, value }: { color: string; label: string; value: 
 }
 /* shadcn's tooltip box with the month's real numbers: rain, usual, and the difference */
 function RainTip({ x, title }: { x: RainMonth; title: string }) {
-  const diff = x.rain - x.usual
+  const diff = x.rain === null ? null : x.rain - x.usual
   return (
     <div className="grid min-w-40 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
       <div className="font-medium">{title}</div>
-      <TipRow color={RAIN_COLOR} label="Rain this year" value={x.rain + ' mm'} />
+      {x.rain !== null && <TipRow color={RAIN_COLOR} label="Rain this year" value={x.rain + ' mm'} />}
       <TipRow color={USUAL_COLOR} label="Usual year" value={x.usual + ' mm'} />
-      <div className="text-muted-foreground">{diff === 0 ? 'Same as usual' : Math.abs(diff) + ' mm ' + (diff > 0 ? 'more' : 'less') + ' than usual'}</div>
+      <div className="text-muted-foreground">
+        {diff === null ? 'No data for this month yet' : diff === 0 ? 'Same as usual' : Math.abs(diff) + ' mm ' + (diff > 0 ? 'more' : 'less') + ' than usual'}
+      </div>
     </div>
   )
 }
