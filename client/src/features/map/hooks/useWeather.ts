@@ -7,6 +7,8 @@ import { gridKey, kindOf, loadGrid, pastYear, tileAt, valueAt, type Grid, type K
 import { loadLand, type Land } from '../land'
 
 const LAYERS: MapLayer[] = ['rain', 'heat', 'soil']
+/* the Weather tab also shows humidity and sunlight */
+export const WEATHER_LAYERS: MapLayer[] = [...LAYERS, 'humid', 'sun']
 const BARS_MIN_MONTHS = 12
 
 /* the last month the sidebar's rain chart shows: the end of the dates, at least a year from their start */
@@ -30,10 +32,10 @@ export const cropWeather = (wx: Weather): CropWeather => ({
   land: (p, crop) => wx.land(p)?.suit[crop] ?? null,
 })
 
-/* rain, heat and soil at some points for some months, worked out exactly as the map does (NASA POWER measured or usual,
+/* the layers (rain, heat and soil unless asked) at some points for some months, worked out exactly as the map does (NASA POWER measured or usual,
    the Open-Meteo forecast laid over it); the requests are shared with the map, so nothing is asked twice.
    landPts: the points whose FAO GAEZ land is needed (FAO turns away a request for too many points at once) */
-export function useWeather(pts: Point[], months: number[], landPts: Point[] = pts): Weather {
+export function useWeather(pts: Point[], months: number[], landPts: Point[] = pts, layers: MapLayer[] = LAYERS): Weather {
   const [grids, setGrids] = useState<Record<string, Grid | null>>({})
   /* the FAO GAEZ land for each set of points asked; null when that request failed (the crops then go by the weather alone) */
   const [lands, setLands] = useState<Record<string, Map<string, Land> | null>>({})
@@ -42,6 +44,7 @@ export function useWeather(pts: Point[], months: number[], landPts: Point[] = pt
   const tilesKey = tiles.join('|')
   const yearsKey = years.map((y) => y ?? 'now').join('|')
   const ptsKey = landPts.map(spotKey).join('|')
+  const layersKey = layers.join('|')
 
   useEffect(() => {
     if (!ptsKey) return
@@ -57,7 +60,7 @@ export function useWeather(pts: Point[], months: number[], landPts: Point[] = pt
 
   useEffect(() => {
     if (!tilesKey || !yearsKey) return
-    for (const layer of LAYERS) {
+    for (const layer of WEATHER_LAYERS.filter((l) => layersKey.split('|').includes(l))) {
       for (const t of tilesKey.split('|')) {
         for (const y of yearsKey.split('|')) {
           const year = y === 'now' ? null : Number(y)
@@ -69,9 +72,9 @@ export function useWeather(pts: Point[], months: number[], landPts: Point[] = pt
         }
       }
     }
-  }, [tilesKey, yearsKey])
+  }, [tilesKey, yearsKey, layersKey])
 
-  const keys = LAYERS.flatMap((l) => tiles.flatMap((t) => years.map((y) => gridKey(l, t, y))))
+  const keys = layers.flatMap((l) => tiles.flatMap((t) => years.map((y) => gridKey(l, t, y))))
   const landDone = !ptsKey || lands[ptsKey] !== undefined
   const status = keys.some((k) => grids[k] === null) ? 'error' : keys.every((k) => grids[k]) && landDone ? 'ready' : 'loading'
   /* the same object until the data changes, so work done on it can be kept between redraws */

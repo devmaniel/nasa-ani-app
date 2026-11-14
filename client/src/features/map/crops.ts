@@ -106,8 +106,6 @@ export function landText(r: Fit) {
 export function landBand(v: number | null): Band | null {
   return v === null ? null : v >= GAEZ_GOOD ? 'good' : v >= GAEZ_FAIR ? 'fair' : 'poor'
 }
-/* the short tag on a crop row */
-export const LAND_TAG: Record<Band, string> = { good: 'Good land', fair: 'Fair land', poor: 'Poor land' }
 
 /* steep from 8% (FAO GAEZ's "moderately steep" and up), flat under 2% */
 const STEEP_PCT = 8
@@ -136,6 +134,13 @@ export type Band = 'good' | 'fair' | 'poor'
 export function band(s: number): Band {
   return s >= GOOD ? 'good' : s >= FAIR ? 'fair' : 'poor'
 }
+/* the score as a 1–5 rating, in step with the bands: 4–5 good to plant, 3 with care, 1–2 not a good time */
+const RATE_TOP = 0.85
+const RATE_LOW = 0.25
+export function rating(s: number) {
+  return s >= RATE_TOP ? 5 : s >= GOOD ? 4 : s >= FAIR ? 3 : s >= RATE_LOW ? 2 : 1
+}
+export const ratingBand = (n: number): Band => (n >= 4 ? 'good' : n === 3 ? 'fair' : 'poor')
 /* plain farming words */
 export const BAND: Record<Band, string> = { good: 'Good to plant', fair: 'Plant with care', poor: 'Not a good time' }
 

@@ -1,7 +1,7 @@
-import { Cloud, CloudSun, Mountain, Satellite, Sprout, Sun } from 'lucide-react'
+import { Cloud, CloudSun, Droplets, LandPlot, Mountain, Satellite, Sprout, Sun } from 'lucide-react'
 import { TbRipple } from 'react-icons/tb'
 import type { ReactNode } from 'react'
-import { heatWord, meanOf, pct, rainWord, SOIL_WORDS, soilLevel, type Point } from '../climate'
+import { heatWord, humidWord, meanOf, pct, rainWord, SOIL_WORDS, soilLevel, sunWord, type Point } from '../climate'
 import type { Kind, MapLayer } from '../climateLayer'
 import { fromWord, fmtY, lengthWord, M0, MON, mName, seasonsIn, SEASON_NAME, yearOf, type Dates, type Span } from '../dates'
 import { barsEnd, type Weather } from '../hooks/useWeather'
@@ -10,10 +10,12 @@ import { SLOPE_PCT, SLOPE_WORDS, type Land } from '../land'
 import type { AirUsual } from '../api'
 import { useAir } from '../hooks/useAir'
 import { useSpace } from '../hooks/useSpace'
-import { dayWord, greenWord, groundLine, latelyLines, treesLine, type Ground, type Lately } from '../space'
+import { dayWord, greenWord, groundLine, latelyLines, treesLine, type FieldPicture, type Ground, type Lately } from '../space'
 import { capFirst, isDim, isHumid, monthsText, runs } from '../report'
 import { GROUPS, REGIONS, type Place } from '../places'
 import type { IconType, LayerKey } from '../types'
+import type { LayerView } from '../hooks/useClimateLayer'
+import { LayerLegend } from './LayerLegend'
 import { RainBars } from './RainBars'
 import { Level, Meter } from './Parts'
 
@@ -21,8 +23,9 @@ const RAIN_HEADROOM = 1.25
 
 /* a month of one layer, averaged over the points: its value, NASA's usual, and where the value comes from */
 type Row = { m: number; v: number; usual: number; kind: Kind }
-type LayerProps = { layer: LayerKey | null; onTile: (l: LayerKey) => void }
-type PanelProps = LayerProps & { wx: Weather; w: Span; dates: Dates }
+type LayerProps = { layer: LayerKey | null; view: LayerView | null; onTile: (l: LayerKey) => void }
+/* wv: the months the rain chart shows (the dates, and more on demand); onMore: shows more, missing at the furthest month */
+type PanelProps = LayerProps & { wx: Weather; w: Span; wv: Span; onMore?: () => void; dates: Dates }
 
 const range = (a: number, b: number) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i)
 /* measured or forecast, not just NASA's usual */
@@ -100,27 +103,43 @@ function Summary({ rain, w, dates, scope }: { rain: Row[]; w: Span; dates: Dates
   )
 }
 
-function Tile({ l, ic: Ic, label, layer, onTile, children }: LayerProps & { l: LayerKey; ic: IconType; label: string; children: ReactNode }) {
+/* the tile showing on the map has its colour key right under it, across the row */
+function Tile({ l, ic: Ic, label, layer, view, onTile, children }: LayerProps & { l: LayerKey; ic: IconType; label: string; children: ReactNode }) {
   return (
-    <button className="tile" type="button" data-tile={l} data-layer={l} aria-pressed={layer === l} onClick={() => onTile(l)}>
-      <span className="tl"><Ic className="i" aria-hidden />{label}</span>
-      {children}
-    </button>
+    <>
+      <button className="tile" type="button" data-tile={l} data-layer={l} aria-pressed={layer === l} onClick={() => onTile(l)}>
+        <span className="tl"><Ic className="i" aria-hidden />{label}</span>
+        {children}
+      </button>
+      {view?.layer === l && <LayerLegend view={view} />}
+    </>
   )
 }
 
-/* four tiles (rain, heat, soil, plants) over the months with data, for one place or the average of the regions; a tile shows its layer */
-/* green: NASA VIIRS's plant greenness at one place, null for the country or while it loads */
-function Tiles({ wx, pts, rain, w, green, ...lp }: LayerProps & { wx: Weather; pts: Point[]; rain: Row[]; w: Span; green: Lately['green'] }) {
+/* one tile per map layer (rain, heat, soil, humidity, sun, plants, fields) over the months with data, for one place or the average of the regions;
+   a tile shows its layer. green: NASA VIIRS's plant greenness at one place; fields: the newest clear field photo there;
+   air: NASA POWER's usual humidity and sunlight there, for the humid and cloudy months (each null for the country or while it loads) */
+function Tiles({ wx, pts, rain, w, green, fields, air, ...lp }: LayerProps & {
+  wx: Weather; pts: Point[]; rain: Row[]; w: Span; green: Lately['green']; fields: FieldPicture | null; air: AirUsual | null
+}) {
   const rr = withData(rain)
   const hr = withData(rowsOf(wx, 'heat', pts, w.a, w.b))
+  const ur = withData(rowsOf(wx, 'humid', pts, w.a, w.b))
+  const sr = withData(rowsOf(wx, 'sun', pts, w.a, w.b))
   const soil = rowsOf(wx, 'soil', pts, M0, M0).at(0)
   const r = meanOf(rr, (x) => x.v)
   const usual = meanOf(rr, (x) => x.usual)
   const t = meanOf(hr, (x) => x.v)
   const tu = meanOf(hr, (x) => x.usual)
+  const h = meanOf(ur, (x) => x.v)
+  const hu = meanOf(ur, (x) => x.usual)
+  const sun = meanOf(sr, (x) => x.v)
+  const su = meanOf(sr, (x) => x.usual)
+  const humid = air ? runs(w, (m) => isHumid(air, m)).map((g) => monthsText(g.a, g.b)) : []
+  const dim = air ? runs(w, (m) => isDim(air, m)).map((g) => monthsText(g.a, g.b)) : []
   const top = Math.max(r, usual) * RAIN_HEADROOM
   const real = rr.some(isReal)
+  const one = pts.length === 1
   const kick = !real ? 'Your dates · ' + noData(w.a).toLowerCase() + ', so the usual'
     : rr.length === rain.length ? (w.a === w.b ? 'This month' : 'Across your dates')
     : rr.length === 1 ? 'In ' + mName(rr[0].m) + ', the month with data' : 'Across the ' + rr.length + ' months with data'
@@ -143,9 +162,25 @@ function Tiles({ wx, pts, rain, w, green, ...lp }: LayerProps & { wx: Weather; p
           <Level n={level} />
           <span className="tc">{soil?.kind === 'usual' ? 'Water in the ground: NASA\'s usual for ' + MON[M0 % 12] : 'Water in the ground: NASA, with the forecast rain'}</span>
         </Tile>
+        <Tile l="humid" ic={Droplets} label="Humidity" {...lp}>
+          <span className="tv num">{Math.round(h)}% <small>humidity</small></span>
+          <span className="tc num">{ur.some(isReal) ? humidWord(h - hu) + ' · usual ' + Math.round(hu) + '%' : 'The usual · no data yet'}</span>
+          {air && <span className="tc num">{humid.length ? 'Humid, fungus spreads easily: ' + humid.join(', ') : 'No very humid months in your dates'}</span>}
+        </Tile>
+        <Tile l="sun" ic={CloudSun} label="Sun" {...lp}>
+          <span className="tv num">{sun.toFixed(1)} <small>MJ/m² a day</small></span>
+          <span className="tc num">{sr.some(isReal) ? sunWord(sun / su) + ' · usual ' + su.toFixed(1) : 'The usual · no data yet'}</span>
+          {air && <span className="tc num">{dim.length ? 'Less sun, slower growth: ' + dim.join(', ') : 'Plenty of sun through your dates'}</span>}
+        </Tile>
         <Tile l="plants" ic={Sprout} label="Plants now" {...lp}>
           <span className="tv">{green ? greenWord(green.v) : 'On the map'} {green && <small className="num">NDVI {green.v.toFixed(2)}</small>}</span>
           <span className="tc">{green ? 'NASA VIIRS, the 8 days to ' + dayWord(green.day) + ' · the map: NASA MODIS' : 'NASA’s satellite picture of how green the land is'}</span>
+        </Tile>
+        <Tile l="fields" ic={LandPlot} label="Fields" {...lp}>
+          <span className="tv num">{fields ? dayWord(fields.day) : one ? 'On the map' : 'Pick a place'} {fields && <small>newest clear photo</small>}</span>
+          <span className="tc num">
+            {fields ? fields.name + ' · ' + Math.round(fields.cloud) + '% cloud · NASA HLS' : one ? 'The newest clear photo of the fields, from Landsat or Sentinel-2' : 'To see the newest clear photo of your fields'}
+          </span>
         </Tile>
       </div>
     </>
@@ -189,25 +224,9 @@ function LatelyTile({ lately }: { lately: Lately | null }) {
   )
 }
 
-/* the usual air humidity and sunlight in the dates at one place, from NASA POWER; no map layer, so not a button */
-function AirTile({ air, w }: { air: AirUsual | null; w: Span }) {
-  if (!air) return null
-  const rh = meanOf(range(w.a, w.b), (m) => air.rh[m % 12])
-  const humid = runs(w, (m) => isHumid(air, m)).map((g) => monthsText(g.a, g.b))
-  const dim = runs(w, (m) => isDim(air, m)).map((g) => monthsText(g.a, g.b))
-  return (
-    <div className="tile static air">
-      <span className="tl"><CloudSun className="i" aria-hidden />Air &amp; sun</span>
-      <span className="tv num">{Math.round(rh)}% <small>humidity, usual in your dates</small></span>
-      <span className="tc num">{humid.length ? 'Humid, fungus spreads easily: ' + humid.join(', ') : 'No very humid months in your dates'}</span>
-      <span className="tc num">{dim.length ? 'Less sun, slower growth: ' + dim.join(', ') : 'Plenty of sun through your dates'} · NASA POWER</span>
-    </div>
-  )
-}
-
 /* the season card, the tiles and the rain chart for some points */
-function Panel({ pts, scope, wx, w, dates, ...lp }: PanelProps & { pts: Point[]; scope: string }) {
-  const bars = rowsOf(wx, 'rain', pts, w.a, barsEnd(w))
+function Panel({ pts, scope, wx, w, wv, onMore, dates, ...lp }: PanelProps & { pts: Point[]; scope: string }) {
+  const bars = rowsOf(wx, 'rain', pts, wv.a, barsEnd(wv))
   const rain = bars.filter((r) => r.m <= w.b)
   const one = pts.length === 1 ? pts[0] : null
   const air = useAir(one)
@@ -216,11 +235,11 @@ function Panel({ pts, scope, wx, w, dates, ...lp }: PanelProps & { pts: Point[];
     <>
       <section><Summary rain={rain} w={w} dates={dates} scope={scope} /></section>
       <section>
-        <Tiles wx={wx} pts={pts} rain={rain} w={w} green={space.lately?.green ?? null} {...lp} />
+        <Tiles wx={wx} pts={pts} rain={rain} w={w} green={space.lately?.green ?? null} fields={space.fields} air={air} {...lp} />
         <LatelyTile lately={space.lately} />
         {one && <LandTile land={wx.land(one)} ground={space.ground} />}
-        <AirTile air={air} w={w} />
-        <RainBars rows={bars.map((r) => ({ m: r.m, rain: isReal(r) ? r.v : null, usual: r.usual, kind: r.kind }))} w={w} />
+        <RainBars rows={bars.map((r) => ({ m: r.m, rain: isReal(r) ? r.v : null, usual: r.usual, kind: r.kind }))} w={wv} />
+        {onMore && <button className="more" type="button" onClick={onMore}>Show 12 more months</button>}
       </section>
     </>
   )
