@@ -33,7 +33,7 @@ const VALUE: Record<MapLayer, (v: number) => string> = {
 /* which NASA picture is on the map: the latest, or the month's own */
 const pictureWord = (p: MapPicture, m: number) => (p.time === 'default' ? 'the latest satellite view' : "NASA's satellite view for " + mName(m))
 
-/* the key under the layer chips: the month and how sure (measured, forecast, usual or estimate), the value at the map centre,
+/* the key under the picked weather tile: the month and how sure (measured, forecast, usual or estimate), the value at the map centre,
    what the colours mean, the source, and which NASA picture is on the map */
 export function LayerLegend({ view }: { view: LayerView }) {
   const { layer, kind, month, live, value, picture } = view
@@ -41,7 +41,7 @@ export function LayerLegend({ view }: { view: LayerView }) {
   if (layer === 'fields') return <FieldsKey view={view} />
   const look = LOOKS[layer]
   return (
-    <div className="lkey glass" role="status">
+    <div className="lkey" role="status">
       {view.status === 'error' && <p className="lk-t">Couldn't load {look.name.toLowerCase()} here. Move the map to try again.</p>}
       {view.status === 'loading' && <p className="lk-t">Loading {look.name.toLowerCase()}…</p>}
       {kind && view.status === 'ready' && (
@@ -60,7 +60,7 @@ export function LayerLegend({ view }: { view: LayerView }) {
   )
 }
 
-/* a label on the map, over the time bar, when the month has no real data: no forecast this far ahead, not measured yet,
+/* a label in the panel, over the time bar, when the month has no real data: no forecast this far ahead, not measured yet,
    or no plant picture; the colours then show NASA's usual for the month */
 export function NoDataBadge({ view }: { view: LayerView }) {
   const { layer, month, kind, picture } = view
@@ -69,14 +69,14 @@ export function NoDataBadge({ view }: { view: LayerView }) {
   const text = layer === 'plants'
     ? picture ? null : month > M0 ? 'No forecast for plants' : 'No plant picture for ' + mName(month)
     : kind !== 'usual' ? null : month > M0 ? 'No forecast for ' + mName(month) + ' · ' + usualWord : 'Not measured yet for ' + mName(month) + ' · ' + usualWord
-  return text ? <p className="nofc glass" role="status">{text}</p> : null
+  return text ? <p className="nofc" role="status">{text}</p> : null
 }
 
 /* Plants has NASA's pictures only: the latest this month, the month's own for past months from July 2002; nobody forecasts plant greenness */
 function PlantsKey({ month, picture }: { month: number; picture: MapPicture | null }) {
   const ahead = month > M0
   return (
-    <div className="lkey glass" role="status">
+    <div className="lkey" role="status">
       <p className="lk-t">
         <b>Plants</b> · {picture ? (picture.time === 'default' ? 'Latest satellite view' : 'Satellite view for ' + mName(month)) : ahead ? 'No forecast for plants' : 'No plant picture for ' + mName(month)}
       </p>
@@ -96,7 +96,7 @@ function FieldsKey({ view }: { view: LayerView }) {
   const { picture, status } = view
   const day = picture ? parseIso(picture.time) : null
   return (
-    <div className="lkey glass" role="status">
+    <div className="lkey" role="status">
       <p className="lk-t">
         <b>Fields</b> · {day ? 'Newest clear photo, ' + fmtY(day)
           : status === 'loading' ? 'Finding the newest clear photo…'
