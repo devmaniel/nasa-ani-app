@@ -83,13 +83,23 @@ export async function placeName(lon: number, lat: number): Promise<string | null
   return parts.length ? parts.join(', ') : null
 }
 
+/* the line under a place when Google's suggestion has none (a province like "Nueva Ecija"): the bigger areas it's in, "Central Luzon, Philippines" */
+const AREA_TYPES = ['administrative_area_level_2', 'administrative_area_level_1', 'country']
+function areasAround(place: google.maps.places.Place, name: string) {
+  return (place.addressComponents ?? [])
+    .filter((c) => c.types.some((t) => AREA_TYPES.includes(t)))
+    .map((c) => c.longText)
+    .filter((t): t is string => !!t && t !== name)
+    .join(', ')
+}
+
 /* where the picked suggestion is, and how wide to show it (Google's view of the place, at least a spot's width) */
 export async function placeOf(s: Suggestion): Promise<Place> {
-  const { place } = await s.prediction.toPlace().fetchFields({ fields: ['location', 'viewport'] })
+  const { place } = await s.prediction.toPlace().fetchFields({ fields: ['location', 'viewport', 'addressComponents'] })
   if (!place.location) throw new Error('Google returned no location for ' + s.name)
   const v = place.viewport
   const w = v ? v.getNorthEast().lng() - v.getSouthWest().lng() : SPOT_W
-  return { name: s.name, sub: s.sub, lon: place.location.lng(), lat: place.location.lat(), w: Math.max(w, SPOT_W) }
+  return { name: s.name, sub: s.sub || areasAround(place, s.name), lon: place.location.lng(), lat: place.location.lat(), w: Math.max(w, SPOT_W) }
 }
 
 /* ---- weather for the map layers: NASA pictures for now, then a free forecast, then NASA's usual for the month ---- */

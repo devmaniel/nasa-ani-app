@@ -308,6 +308,15 @@
     section[data-name="Map"][data-sb] .tabsf{right:var(--gap)}
     section[data-name="Map"] .mbtn .tip{display:none}
     section[data-name="Map"][data-sb] .maplibregl-ctrl-bottom-right{right:0}
+    /* the open layer chips run edge to edge, not cut at the dock: they scroll in from the screen's left edge and out under
+       the map buttons on the right, so the row plainly goes on; the end padding lets the last chip scroll clear of the buttons */
+    section[data-name="Map"] .chip{gap:6px;padding:0 12px 0 10px}
+    section[data-name="Map"] #layers{
+      --bleed:calc(var(--gap) * 2 + 50px);
+      gap:6px;max-width:none;width:calc(100% + var(--gap) + var(--bleed));margin:0 calc(-1 * var(--bleed)) 0 calc(-1 * var(--gap));
+      padding:2px calc(var(--bleed) + var(--gap)) 2px var(--gap);
+    }
+    section[data-name="Map"] .rail{z-index:1}
   }
   /* the time bar starts hidden: a "Timeline" chip opens it, the chevron at its end hides it again */
   section[data-name="Map"] .topen{pointer-events:auto}

@@ -2,20 +2,35 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { type Locator, type Page } from '@playwright/test'
 
-/* What both demo recordings share: the drawn mouse, a hand that moves like a person, the window fit and the screen recorder */
+/* What the demo recordings share: the drawn mouse, a hand that moves like a person, the window fit and the screen recorder */
 export const PLACE = 'Nueva Ecija'
 export const DATA_MS = 60_000 /* live NASA / Open-Meteo data can take a while */
 const TYPE_MS = 120
 const MOVE_MS = 700
-export const VIEW = { w: 1280, h: 720 } /* the page, in CSS px; small enough that the window clears the macOS menu bar and Dock */
-const OUT = { w: 1920, h: 1080, fps: 60, bitrate: '16M' }
+export type Size = { w: number; h: number }
+type Out = Size & { fps: number; bitrate: string }
+export const VIEW: Size = { w: 1280, h: 720 } /* the page, in CSS px; small enough that the window clears the macOS menu bar and Dock */
+export const PHONE: Size = { w: 360, h: 720 } /* a phone screen (1:2), as tall as the desktop page so it still fits the display */
+const OUT: Out = { w: 1920, h: 1080, fps: 60, bitrate: '16M' }
+export const PHONE_OUT: Out = { w: 1080, h: 2160, fps: 60, bitrate: '16M' }
 const SCREEN = 'Capture screen 0' /* ffmpeg's name for the main display */
 const REC_START_MS = 1500
 const SCROLL_PAD = 16 /* how far inside its scroll area an element must sit to count as in view */
 
+/* what the page draws for the mouse: a desktop arrow (its tip on the mouse), or a fingertip dot for the phone video (centred) */
+type Pointer = { html: string; size: number; dx: number; dy: number }
+const ARROW: Pointer = {
+  html: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 2l7 19 2.6-7.6L20 11z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  size: 22, dx: 3, dy: 2,
+}
+const FINGER: Pointer = {
+  html: '<div style="width:100%;height:100%;box-sizing:border-box;border-radius:50%;background:rgba(17,17,17,.28);border:2px solid rgba(255,255,255,.92)"></div>',
+  size: 30, dx: 15, dy: 15,
+}
+
 /* Playwright's video has no mouse, so the page draws one: a pointer that follows the real mouse and ripples on click.
    Scrolling is eased frame by frame in the page too: synthetic wheel ticks jump, and stop at the edges with a bounce */
-export const CURSOR = `
+const pointerScript = (p: Pointer) => `
 const scroller = (x, y) => {
   let n = document.elementFromPoint(x, y)
   while (n && n !== document.body && n !== document.documentElement) {
@@ -49,7 +64,7 @@ window.__demoScroll = (x, y, dy, ms) => new Promise((done) => {
 addEventListener('DOMContentLoaded', () => {
   const css = document.createElement('style')
   css.textContent = \`
-    #demo-cursor { position: fixed; left: 0; top: 0; width: 22px; height: 22px; z-index: 2147483647; pointer-events: none;
+    #demo-cursor { position: fixed; left: 0; top: 0; width: ${p.size}px; height: ${p.size}px; z-index: 2147483647; pointer-events: none;
       transform: translate(-100px, -100px); transition: scale .12s; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)) }
     #demo-cursor.down { scale: .85 }
     .demo-ripple { position: fixed; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; z-index: 2147483646;
@@ -58,9 +73,9 @@ addEventListener('DOMContentLoaded', () => {
   document.head.append(css)
   const c = document.createElement('div')
   c.id = 'demo-cursor'
-  c.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 2l7 19 2.6-7.6L20 11z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>'
+  c.innerHTML = '${p.html}'
   document.documentElement.append(c)
-  addEventListener('mousemove', (e) => { c.style.transform = 'translate(' + (e.clientX - 3) + 'px,' + (e.clientY - 2) + 'px)' }, true)
+  addEventListener('mousemove', (e) => { c.style.transform = 'translate(' + (e.clientX - ${p.dx}) + 'px,' + (e.clientY - ${p.dy}) + 'px)' }, true)
   addEventListener('mousedown', (e) => {
     c.classList.add('down')
     const r = document.createElement('i')
@@ -72,10 +87,12 @@ addEventListener('DOMContentLoaded', () => {
   }, true)
   addEventListener('mouseup', () => c.classList.remove('down'), true)
 })`
+export const CURSOR = pointerScript(ARROW)
+export const TOUCH = pointerScript(FINGER)
 
 /* A person's hand: curved, eased moves, small pauses, letter-by-letter typing, wheel scrolling in steps */
-export function hand(page: Page) {
-  let at = { x: VIEW.w / 2, y: VIEW.h / 2 }
+export function hand(page: Page, view: Size = VIEW) {
+  let at = { x: view.w / 2, y: view.h / 2 }
   const rest = (ms: number) => page.waitForTimeout(ms)
 
   async function moveTo(x: number, y: number, ms = MOVE_MS) {
@@ -128,26 +145,43 @@ export function hand(page: Page) {
   return { rest, moveTo, point, click, type, scroll, scrollTo }
 }
 
-/* size the real window so the page is exactly VIEW, and return where the page sits on screen, in screen pixels */
-export async function fitWindow(page: Page) {
+/* size the real window so the page is view.w x view.h (the width as near as Chrome allows); its CDP session and where the page sits */
+async function sizeWindow(page: Page, view: Size) {
   const read = () => page.evaluate<number[]>('[screenX, screenY, outerWidth - innerWidth, outerHeight - innerHeight, innerWidth, innerHeight, devicePixelRatio]')
   const [, , padW, padH] = await read()
   const cdp = await page.context().newCDPSession(page)
   const { windowId } = await cdp.send('Browser.getWindowForTarget')
-  await cdp.send('Browser.setWindowBounds', { windowId, bounds: { left: 0, top: 0, width: VIEW.w + padW, height: VIEW.h + padH } })
+  await cdp.send('Browser.setWindowBounds', { windowId, bounds: { left: 0, top: 0, width: view.w + padW, height: view.h + padH } })
   await page.waitForTimeout(500)
-  const [x, y, , chromeH, w, hgt, dpr] = await read()
-  if (w !== VIEW.w || hgt !== VIEW.h) throw new Error(`Window gave a ${w}x${hgt} page, not ${VIEW.w}x${VIEW.h}`)
-  return { x: x * dpr, y: (y + chromeH) * dpr, w: w * dpr, h: hgt * dpr }
+  const [x, y, , chromeH, w, h, dpr] = await read()
+  return { cdp, read, x, y, chromeH, w, h, dpr }
+}
+
+/* size the real window so the page is exactly VIEW, and return where the page sits on screen, in screen pixels */
+export async function fitWindow(page: Page) {
+  const { x, y, chromeH, w, h, dpr } = await sizeWindow(page, VIEW)
+  if (w !== VIEW.w || h !== VIEW.h) throw new Error(`Window gave a ${w}x${h} page, not ${VIEW.w}x${VIEW.h}`)
+  return { x: x * dpr, y: (y + chromeH) * dpr, w: w * dpr, h: h * dpr }
+}
+
+/* the phone video: macOS keeps a Chrome window wider than a phone, so the page is drawn at PHONE size as a phone would
+   (mobile viewport, no desktop scrollbars) in the window's top-left corner; returns that corner's area on screen */
+export async function fitPhone(page: Page) {
+  const { cdp, read, x, y, chromeH, h, dpr } = await sizeWindow(page, PHONE)
+  if (h !== PHONE.h) throw new Error(`Window gave a page ${h} px tall, not ${PHONE.h}`)
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: PHONE.w, height: PHONE.h, deviceScaleFactor: 0, mobile: true })
+  const [, , , , pw, ph] = await read()
+  if (pw !== PHONE.w || ph !== PHONE.h) throw new Error(`Phone view came out ${pw}x${ph}, not ${PHONE.w}x${PHONE.h}`)
+  return { x: x * dpr, y: (y + chromeH) * dpr, w: PHONE.w * dpr, h: PHONE.h * dpr }
 }
 
 /* screen-record the page's area of the display at 60 fps on the Mac's hardware encoder; returns a stop function */
-export async function record(crop: { x: number; y: number; w: number; h: number }, file: string) {
+export async function record(crop: { x: number; y: number; w: number; h: number }, file: string, out: Out = OUT) {
   const ff = spawn('ffmpeg', [
-    '-y', '-loglevel', 'error', '-f', 'avfoundation', '-capture_cursor', '0', '-framerate', String(OUT.fps), '-pixel_format', 'nv12',
+    '-y', '-loglevel', 'error', '-f', 'avfoundation', '-capture_cursor', '0', '-framerate', String(out.fps), '-pixel_format', 'nv12',
     '-i', SCREEN + ':none',
-    '-vf', `crop=${crop.w}:${crop.h}:${crop.x}:${crop.y},scale=${OUT.w}:${OUT.h}:flags=lanczos,format=yuv420p`,
-    '-c:v', 'h264_videotoolbox', '-b:v', OUT.bitrate, '-r', String(OUT.fps), '-movflags', '+faststart', file,
+    '-vf', `crop=${crop.w}:${crop.h}:${crop.x}:${crop.y},scale=${out.w}:${out.h}:flags=lanczos,format=yuv420p`,
+    '-c:v', 'h264_videotoolbox', '-b:v', out.bitrate, '-r', String(out.fps), '-movflags', '+faststart', file,
   ], { stdio: ['pipe', 'inherit', 'inherit'] })
   const exited = once(ff, 'exit')
   const early = await Promise.race([exited.then(() => true), new Promise<false>((r) => setTimeout(() => r(false), REC_START_MS))])

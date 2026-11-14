@@ -85,6 +85,7 @@ type Props = {
 export function ReportHead({ place, dates, w, loading, land, ground, moves, alerts, headingRef, onBack, onGoMoves }: Props) {
   const one = w.a === w.b
   const landWords = land ? landLine(land) : ''
+  const address = addressOf(place) /* empty when Google has no second line for the place (a province like "Nueva Ecija") */
   return (
     <div className="rp-wrap">
       <div className="rp-head">
@@ -94,7 +95,7 @@ export function ReportHead({ place, dates, w, loading, land, ground, moves, aler
             <span className="sep" aria-hidden="true">/</span><span>Full report</span>
           </p>
           <h1 id="rp-place" tabIndex={-1} ref={headingRef}>{place.name}</h1>
-          <p className="rp-addr" id="rp-addr"><MapPin className="i" /><span>{addressOf(place)}</span></p>
+          {address && <p className="rp-addr" id="rp-addr"><MapPin className="i" /><span>{address}</span></p>}
           {landWords && <p className="rp-addr" id="rp-land"><Mountain className="i" /><span>{landWords} · FAO GAEZ, about 25 km around</span></p>}
           {ground && (
             <p className="rp-addr" id="rp-spot">
