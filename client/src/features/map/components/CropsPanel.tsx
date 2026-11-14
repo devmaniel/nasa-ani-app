@@ -39,7 +39,7 @@ function CropRow({ c, n, line, onOpen }: { c: Crop; n: number; line: string; onO
   return (
     <li className={bd}>
       <button className="crh" type="button" data-guide={c.n} aria-haspopup="dialog" onClick={(e: MouseEvent<HTMLButtonElement>) => onOpen(c.n, e.currentTarget)}>
-        <img className="cph" src={photoOf(c.n)} alt="" />
+        <img className="cph" src={photoOf(c.n)} alt="" loading="lazy" />
         <span className="crb">
           <span className="cn"><b>{c.n}</b><span className="vd">{VERDICT[bd]}</span></span>
           <span className="when">{line}</span>

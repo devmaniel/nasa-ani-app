@@ -171,17 +171,19 @@ function spreadSun(points: GridPoint[], tile: string): GridPoint[] {
    without the forecast or the past, those months fall back to NASA's usual */
 export async function loadGrid(layer: MapLayer, tile: string, year: number | null): Promise<Grid> {
   const param = LOOKS[layer].usual
+  /* sunlight is spread onto the fine grid once, before it's kept, not on every load (it's slow) */
   const fine = (points: GridPoint[]) => (layer === 'sun' ? spreadSun(points, tile) : points)
-  const usualOf = (p: UsualParam) => once(savedUsual, p + ':' + tile, () => usualGrid(p, tileBox(tile)))
+  const asIs = (points: GridPoint[]) => points
+  const usualOf = (p: UsualParam, shape = asIs) => once(savedUsual, p + ':' + tile, () => usualGrid(p, tileBox(tile)).then(shape))
   const [usual, rain, forecast, past] = await Promise.all([
-    usualOf(param).then(fine),
+    usualOf(param, fine),
     layer === 'soil' ? usualOf('PRECTOTCORR') : null,
     !FORECAST_LAYERS.has(layer) ? null : once(savedForecast, tile, () => forecastFor(forecastSpots(tile))).catch((err: unknown) => {
       console.error('Forecast failed; later months show NASA usual', err)
       return null
     }),
-    year === null ? null : once(savedPast, param + ':' + tile + ':' + year, () => pastGrid(param, tileBox(tile), year))
-      .then((points) => ({ year, points: fine(points) }))
+    year === null ? null : once(savedPast, param + ':' + tile + ':' + year, () => pastGrid(param, tileBox(tile), year).then(fine))
+      .then((points) => ({ year, points }))
       .catch((err: unknown) => {
         console.error('NASA POWER past months failed; they show NASA usual', err)
         return { year, points: [] }
