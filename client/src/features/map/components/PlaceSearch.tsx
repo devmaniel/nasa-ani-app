@@ -1,0 +1,94 @@
+import { Clock, MapPin, Navigation, Search } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { PLACES, SPOT_W, type Place } from '../places'
+import type { IconType } from '../types'
+
+const MATCH_MAX = 6
+type Item = { n: string; k?: string; ic: IconType; go: () => void }
+
+function norm(s: string) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+type Props = { recent: Place[]; onGo: (p: Place) => void; onLocate: () => void }
+
+/* empty box: "Use my location" and the places chosen on this visit; typing: matching places */
+export function PlaceSearch({ recent, onGo, onLocate }: Props) {
+  const [text, setText] = useState('')
+  const [open, setOpen] = useState(false)
+  const [act, setAct] = useState(-1)
+  const barRef = useRef<HTMLDivElement>(null)
+
+  const goTo = (p: Place) => {
+    setText(p.name)
+    onGo(p)
+  }
+  const t = norm(text.trim())
+  const items: Item[] = !t
+    ? [{ n: 'Use my location', ic: Navigation, go: onLocate }, ...recent.map((r): Item => ({ n: r.name, k: r.sub, ic: Clock, go: () => goTo(r) }))]
+    : PLACES.filter((p) => norm(p.n).includes(t))
+        .sort((a, b) => norm(a.n).indexOf(t) - norm(b.n).indexOf(t))
+        .slice(0, MATCH_MAX)
+        .map((p): Item => ({ n: p.n, k: p.k, ic: MapPin, go: () => goTo({ name: p.n, sub: p.k, lon: p.lon, lat: p.lat, w: Math.max(p.w, SPOT_W) }) }))
+
+  const show = (value: string) => {
+    setOpen(true)
+    setAct(norm(value.trim()) ? 0 : -1)
+  }
+  const run = (it: Item) => {
+    setOpen(false)
+    it.go()
+  }
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!items.length || !open) return
+      e.preventDefault()
+      setAct((act + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length)
+    } else if (e.key === 'Enter') {
+      if (act >= 0 && open && items[act]) {
+        e.preventDefault()
+        run(items[act])
+      }
+    } else if (e.key === 'Escape') setOpen(false)
+  }
+
+  /* a click anywhere outside the search closes the list */
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (e.target instanceof Node && !barRef.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [open])
+
+  const active = open && act >= 0 && items[act] ? 'o' + act : undefined
+  return (
+    <div className="search" id="bar" ref={barRef} data-open={open ? '' : undefined}>
+      <div className="sbox">
+        <Search className="i" />
+        <input
+          id="q" type="text" autoComplete="off" spellCheck={false} placeholder="Search a city, province or region"
+          role="combobox" aria-label="Search a place" aria-autocomplete="list" aria-expanded={open} aria-controls="sug" aria-activedescendant={active}
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value)
+            show(e.target.value)
+          }}
+          onFocus={() => show(text)}
+          onKeyDown={onKeyDown}
+        />
+      </div>
+      <ul className="sug glass" id="sug" role="listbox" aria-label="Places" hidden={!open} onMouseDown={(e) => e.preventDefault()}>
+        {items.length ? items.map((it, i) => (
+          <li key={it.n + i} role="option" id={'o' + i} data-i={i} aria-selected={i === act} onMouseDown={() => run(it)}>
+            <span className="si"><it.ic className="i" aria-hidden /></span>
+            <span className="st"><b>{it.n}</b>{it.k && <small>{it.k}</small>}</span>
+          </li>
+        )) : (
+          <li className="none" role="option" aria-disabled="true">No place found for “{text.trim()}”.</li>
+        )}
+      </ul>
+    </div>
+  )
+}

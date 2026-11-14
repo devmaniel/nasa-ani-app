@@ -1,0 +1,10 @@
+/* The date box and its calendar (not in the template: it used the browser's date input).
+   The box keeps the template's input look (.adv input in map.css). The calendar spans the whole From–To row. */
+@layer page {
+  section[data-name="Map"] .adv .two{position:relative}
+  section[data-name="Map"] .dfield{min-width:0}
+  section[data-name="Map"] .dfield-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0;height:40px;padding:0 10px;border-radius:10px;border:1px solid rgba(10,11,15,.16);background:var(--milk);color:var(--on);font-size:13px;font-weight:500;text-align:left}
+  section[data-name="Map"] .dfield-btn[aria-expanded="true"]{border-color:var(--on);box-shadow:0 0 0 3px rgba(10,11,15,.08)}
+  section[data-name="Map"] .dfield-btn svg.i{color:var(--on-mute)}
+  section[data-name="Map"] .dcal{position:absolute;z-index:2;top:calc(100% + 6px);left:0;right:0;border-radius:16px;animation:pn-in 160ms ease-out}
+}

@@ -1,0 +1,653 @@
+/* Map page styles, copied from artifacts/master-template-v2.html (section[data-name="Map"]). */
+/* In the "page" layer (see src/index.css) so shadcn parts used inside the map keep their own look. */
+@layer page {
+section[data-name="Map"] .brand{display:block;aspect-ratio:433/180;background:url(../assets/logo.png) center/contain no-repeat}
+section[data-name="Map"] .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- design tokens (snapshot of the master's :root) ---- */
+section[data-name="Map"]{
+  --milk:#fff; --sand-50:#f1f0ee; --sand-100:#fefdfb; --sand-150:#faf8f5; --sand-200:#ebe9e6; --sand-300:#d9d7d4;
+  --mist-100:#bee3ff; --mist-200:#ecf7ff; --peach-100:#ff6568; --peach-300:#fff0f0; --seafoam-300:#e7f4ef;
+  --lilac-100:#efcbff; --lilac-200:#fbf2ff;
+  --black:#0a0b0f; --ink:#08090a; --green:#0c8c5e; --brown:#8f5410; --gray:#717d79;
+  --serif:"PP Kyoto", Rockwell, "Roboto Slab", "American Typewriter", Georgia, serif;
+  --sans:"PP Agrandir Variable", "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif;
+  /* light map UI: floating white panels over a pale sea */
+  --sea:#dcebf4; --glass:rgba(255,255,255,.9); --glass-line:rgba(10,11,15,.08); --shadow:0 8px 28px rgba(16,24,20,.12);
+  --on:var(--ink); --on-mute:rgba(8,9,10,.6); --on-line:rgba(10,11,15,.08); --hover:var(--sand-50); --well:rgba(10,11,15,.05);
+  --rain:#1f78c1; --heat:#cf3f42; --soil:var(--brown);
+  --good-tone:var(--green); --fair-tone:#a86a00; --poor-tone:#cf3f42;
+  --pw:380px; --gap:16px; --btn:44px;
+}
+section[data-name="Map"] *,section[data-name="Map"] *::before,section[data-name="Map"] *::after{box-sizing:border-box}
+
+section[data-name="Map"]{margin:0;overflow:hidden;background:var(--milk);color:var(--on);font-family:var(--sans);font-size:14px;font-weight:500;line-height:1.45;color-scheme:light}
+section[data-name="Map"] svg,section[data-name="Map"] img{display:block;max-width:100%}
+section[data-name="Map"] button,section[data-name="Map"] input{font:inherit;color:inherit}
+section[data-name="Map"] button{background:none;border:0;padding:0;cursor:pointer}
+section[data-name="Map"] h1,section[data-name="Map"] h2,section[data-name="Map"] h3{margin:0;font-weight:400;text-wrap:balance}
+section[data-name="Map"] p{margin:0;text-wrap:pretty}
+section[data-name="Map"] ul,section[data-name="Map"] ol{margin:0;padding:0;list-style:none}
+section[data-name="Map"] [hidden]{display:none!important}
+section[data-name="Map"] :focus-visible{outline:2px solid var(--on);outline-offset:2px;border-radius:8px}
+section[data-name="Map"] .num{font-variant-numeric:tabular-nums}
+section[data-name="Map"] svg.i{width:16px;height:16px;flex:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;fill:none}
+section[data-name="Map"] .glass{background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shadow);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+
+/* ---- layout: a top bar, a rail of round buttons on the left, the sidebar beside it, the map in the rest ---- */
+section[data-name="Map"]{--top:64px;--rl:32px;--sw:380px;--chip-shadow:0 1px 2px rgba(16,24,20,.08),0 2px 6px rgba(16,24,20,.06)}
+section[data-name="Map"] .top{position:fixed;z-index:20;top:0;left:0;right:0;height:var(--top);display:flex;align-items:center;gap:16px;padding:0 16px 0 16px;background:var(--milk);border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .mbrand{flex:none;display:block}
+section[data-name="Map"] .mbrand .brand{height:30px}
+
+/* middle: the search; its suggestions drop under it */
+section[data-name="Map"] .search{position:relative;flex:1;min-width:0;max-width:640px;margin:0 auto}
+section[data-name="Map"] .search .sbox{display:flex;align-items:center;gap:10px;height:44px;padding:0 16px;border-radius:999px;background:var(--well);color:var(--on-mute);transition:background-color 150ms ease-out,box-shadow 150ms ease-out}
+section[data-name="Map"] .search .sbox:focus-within{background:var(--milk);box-shadow:0 0 0 2px rgba(10,11,15,.2)}
+section[data-name="Map"] .search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:none;color:var(--on);font-size:14px}
+section[data-name="Map"] .search input::placeholder{color:var(--on-mute)}
+section[data-name="Map"] .sug{position:absolute;z-index:1;top:calc(100% + 6px);left:0;right:0;padding:6px;border-radius:16px}
+section[data-name="Map"] .sug li{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 10px;border-radius:10px;cursor:pointer}
+section[data-name="Map"] .sug .si{flex:none;width:32px;height:32px;display:grid;place-items:center;border-radius:999px;background:var(--well);color:var(--on-mute)}
+section[data-name="Map"] .sug .st{flex:1;min-width:0;display:grid}
+section[data-name="Map"] .sug li b,section[data-name="Map"] .sug li small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+section[data-name="Map"] .sug li b{font-weight:600}
+section[data-name="Map"] .sug li small{font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .sug li[aria-selected="true"],section[data-name="Map"] .sug li:not(.none):hover{background:var(--hover)}
+section[data-name="Map"] .sug li.none{min-height:40px;padding:10px 12px;cursor:default;color:var(--on-mute);font-size:13px}
+
+/* right: the dates button; its box drops under it */
+section[data-name="Map"] .dbtn{flex:none;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 12px 0 14px;border-radius:999px;border:1px solid var(--on-line);font-size:14px;font-weight:600;white-space:nowrap;transition-property:background-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .dbtn:hover,section[data-name="Map"] .dbtn[aria-expanded="true"]{background:var(--hover)}
+section[data-name="Map"] .dbtn:active{transform:scale(.97)}
+section[data-name="Map"] .dbtn .dk{font-weight:500;color:var(--on-mute)}
+section[data-name="Map"] .dbtn>svg.i:last-child{color:var(--on-mute)}
+section[data-name="Map"] .dp{position:fixed;z-index:21;top:calc(var(--top) + 8px);right:16px;width:400px;max-width:calc(100% - 32px);padding:16px;border-radius:16px;animation:pn-in 160ms ease-out}
+@keyframes pn-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* right: a thin strip; the round Weather and Crops buttons sit on its edge, and on the sidebar's edge
+   while it's open (like Reddit's collapse button). The lit one closes the sidebar again. */
+section[data-name="Map"] .rl{position:fixed;z-index:16;top:calc(var(--top) + 16px);right:calc(var(--rl) - 20px);display:flex;flex-direction:column;gap:10px;transition:right 180ms ease-out}
+section[data-name="Map"][data-sb] .rl{right:calc(var(--rl) + var(--sw) - 20px)}
+section[data-name="Map"] .tabb{position:relative;width:40px;height:40px;display:grid;place-items:center;border-radius:999px;background:var(--milk);border:1px solid var(--sand-300);box-shadow:0 1px 3px rgba(16,24,20,.1);color:var(--on);transition-property:background-color,color,border-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .tabb svg.i{width:20px;height:20px}
+section[data-name="Map"] .tabb:hover{background:var(--sand-50)}
+section[data-name="Map"] .tabb:active{transform:scale(.94)}
+section[data-name="Map"] .tabb[aria-pressed="true"]{background:var(--green);border-color:transparent;color:#fff}
+section[data-name="Map"] .tabb::after{content:attr(data-tip);position:absolute;right:calc(100% + 10px);top:50%;transform:translate(4px,-50%);padding:6px 10px;border-radius:8px;background:var(--ink);color:#fff;box-shadow:0 4px 14px rgba(16,24,20,.18);font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0;transition-property:opacity,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .tabb:hover::after,section[data-name="Map"] .tabb:focus-visible::after{opacity:1;transform:translate(0,-50%)}
+
+/* the sidebar: one content at a time (Weather or Crops), scrolls on its own */
+/* --sb-in: room on both sides, wide enough on the left for the round buttons that sit on the sidebar's edge */
+section[data-name="Map"] .sb{--sb-in:40px;position:fixed;z-index:14;top:var(--top);right:0;bottom:0;width:calc(var(--rl) + var(--sw));display:flex;flex-direction:column;background:var(--milk);animation:sb-in 180ms ease-out}
+@keyframes sb-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+section[data-name="Map"] .sb-h{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:18px 12px 16px var(--sb-in);border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .sb-hd{min-width:0}
+section[data-name="Map"] .sb-h h2{margin-top:2px;font-family:var(--serif);font-size:26px;line-height:1.1}
+section[data-name="Map"] .sb-h .k{margin-top:2px;font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .x{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:999px;color:var(--on-mute);transition:background-color 150ms ease-out,color 150ms ease-out}
+section[data-name="Map"] .x:hover{background:var(--hover);color:var(--on)}
+section[data-name="Map"] .sb-x{display:none}
+section[data-name="Map"] .sb-s{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column}
+section[data-name="Map"] .sb section{padding:16px var(--sb-in);border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .kick{font-size:12px;font-weight:600;color:var(--on-mute)}
+
+/* ---- the map: everything left of the rail (and of the sidebar while it's open) ---- */
+section[data-name="Map"] .stage,section[data-name="Map"] .mapui{position:fixed;top:var(--top);right:var(--rl);bottom:0;left:0}
+section[data-name="Map"][data-sb] .stage,section[data-name="Map"][data-sb] .mapui{right:calc(var(--rl) + var(--sw))}
+section[data-name="Map"] .stage{overflow:hidden;background:var(--sea);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+section[data-name="Map"] .stage[data-drag]{cursor:grabbing}
+section[data-name="Map"] .stage:focus-visible{outline:2px solid var(--on);outline-offset:-2px;border-radius:0}
+section[data-name="Map"] .stage canvas{position:absolute;inset:0;width:100%;height:100%}
+section[data-name="Map"] .ov{position:absolute;inset:0;width:100%;height:100%;max-width:none;pointer-events:none;overflow:visible}
+section[data-name="Map"] .ov text{font-family:var(--sans);font-size:12px;font-weight:600;fill:var(--on);paint-order:stroke;stroke:rgba(255,255,255,.92);stroke-width:3px;stroke-linejoin:round}
+section[data-name="Map"] .ov .ct circle{fill:var(--on);stroke:var(--milk);stroke-width:1}
+section[data-name="Map"] .ov .area{fill:rgba(12,140,94,.14);stroke:var(--good-tone);stroke-width:1.5}
+section[data-name="Map"] .ov .pin path{fill:var(--good-tone);stroke:var(--milk);stroke-width:1.5}
+section[data-name="Map"] .ov .pin circle{fill:var(--milk)}
+section[data-name="Map"] .mapui{z-index:10;pointer-events:none;box-shadow:inset -1px 0 0 var(--on-line)}   /* the line between the strip (or sidebar) and the map */
+
+/* on the map, top left: one chip per layer; tap the lit one again for the plain map */
+/* ends left of the round buttons on the strip edge; chip shadows stay small so the scrolling row never cuts them off */
+section[data-name="Map"] .layers{position:absolute;top:4px;left:4px;max-width:calc(100% - 28px);display:flex;gap:8px;padding:8px;overflow-x:auto;scrollbar-width:none;pointer-events:auto}
+section[data-name="Map"] .layers::-webkit-scrollbar{display:none}
+section[data-name="Map"] .chip{flex:none;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px 0 12px;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap;box-shadow:var(--chip-shadow);transition-property:background-color,box-shadow,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .chip svg.i{width:18px;height:18px;color:var(--lc)}
+section[data-name="Map"] .chip:hover{background:var(--milk)}
+section[data-name="Map"] .chip:active{transform:scale(.96)}
+section[data-name="Map"] .chip[aria-pressed="true"]{background:var(--lt);border-color:transparent;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--lc) 45%,transparent),var(--chip-shadow)}
+section[data-name="Map"] [data-layer="rain"]{--lc:#2992e3;--lt:var(--mist-200)}
+section[data-name="Map"] [data-layer="heat"]{--lc:var(--peach-100);--lt:var(--peach-300)}
+section[data-name="Map"] [data-layer="soil"]{--lc:var(--brown);--lt:var(--sand-200)}
+section[data-name="Map"] [data-layer="plants"]{--lc:var(--green);--lt:var(--seafoam-300)}
+
+/* on the map, bottom right: my location, zoom under it */
+section[data-name="Map"] .rail{position:absolute;right:var(--gap);bottom:var(--gap);display:flex;flex-direction:column}
+section[data-name="Map"] .rg{display:flex;flex-direction:column;gap:10px;pointer-events:auto}
+section[data-name="Map"] .rb{position:relative;width:var(--btn);height:var(--btn);display:grid;place-items:center;border-radius:999px;transition-property:background-color,transform,opacity;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rb svg.i{width:20px;height:20px}
+section[data-name="Map"] .rb:hover:not(:disabled){background:var(--hover)}
+section[data-name="Map"] .rb:active:not(:disabled){transform:scale(.94)}
+section[data-name="Map"] .rb:disabled{cursor:default}
+section[data-name="Map"] .rb:disabled svg.i{opacity:.3}
+section[data-name="Map"] .rb .tip{position:absolute;right:calc(100% + 10px);top:50%;transform:translate(4px,-50%);padding:6px 10px;border-radius:8px;background:var(--ink);color:#fff;box-shadow:0 4px 14px rgba(16,24,20,.18);font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0;transition-property:opacity,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rb:hover .tip,section[data-name="Map"] .rb:focus-visible .tip{opacity:1;transform:translate(0,-50%)}
+section[data-name="Map"] .zoomg{display:flex;flex-direction:column;border-radius:999px}
+section[data-name="Map"] .zoomg .rb:first-child{border-radius:999px 999px 0 0}
+section[data-name="Map"] .zoomg .rb:last-child{border-radius:0 0 999px 999px}
+section[data-name="Map"] .zoomg .rb+.rb::before{content:"";position:absolute;top:0;left:12px;right:12px;height:1px;background:var(--glass-line)}
+/* finding you: the arrow stays, a green ring turns around it */
+section[data-name="Map"] .rb[aria-busy="true"]{cursor:progress;color:var(--good-tone)}
+section[data-name="Map"] .rb[aria-busy="true"]::after{content:"";position:absolute;inset:4px;border-radius:999px;border:2px solid rgba(12,140,94,.18);border-top-color:var(--good-tone);animation:spin 800ms linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* the time bar, shown when the dates cover two months or more */
+section[data-name="Map"] .tbar{align-self:stretch;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 16px 8px 12px;border-radius:16px;pointer-events:auto}
+section[data-name="Map"] .tplay{width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:1px solid var(--ink);background:var(--milk);transition-property:background-color,color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .tplay:hover{background:var(--ink);color:#fff}
+section[data-name="Map"] .tplay:active{transform:scale(.96)}
+section[data-name="Map"] .tplay svg.i{width:14px;height:14px}
+section[data-name="Map"] .tplay[data-icon="play"] svg.i{margin-left:2px}
+section[data-name="Map"] .tplay:not([data-icon="replay"]) svg.i{fill:currentColor}
+section[data-name="Map"] .ttrk{position:relative;min-width:0;padding-top:16px}
+/* the lanes are inset by half the thumb so a month's colour sits right under the thumb */
+section[data-name="Map"] .ttrk .lane{position:absolute;left:8px;right:8px}
+section[data-name="Map"] .tlabels{top:0;height:14px;font-size:11px;font-weight:600;line-height:14px;color:var(--on-mute);pointer-events:none}
+section[data-name="Map"] .tlabels span{position:absolute;top:0;overflow:hidden;white-space:nowrap;text-overflow:clip;padding-left:2px}
+section[data-name="Map"] .tzones{top:23px;height:6px;border-radius:3px;overflow:hidden;pointer-events:none}
+section[data-name="Map"] .tzones .z{position:absolute;top:0;bottom:0}
+section[data-name="Map"] .tzones .z+.z{box-shadow:inset 2px 0 0 var(--milk)}
+section[data-name="Map"] .tzones .wet{background:#8ec9ff}section[data-name="Map"] .tzones .cool{background:var(--sand-300)}section[data-name="Map"] .tzones .hot{background:#ffa9aa}
+/* more than a year ahead: striped, the same "less sure" as in the sidebar */
+section[data-name="Map"] .tzones .ls{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(90deg,transparent 0 3px,var(--milk) 3px 5px)}
+section[data-name="Map"] .ttrk input[type="range"]{position:relative;z-index:2;display:block;width:100%;height:20px;margin:0;background:none;-webkit-appearance:none;appearance:none;cursor:pointer}
+section[data-name="Map"] .ttrk input[type="range"]::-webkit-slider-runnable-track{height:20px;background:none}
+section[data-name="Map"] .ttrk input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:2px;border-radius:50%;background:var(--milk);border:2px solid var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+section[data-name="Map"] .ttrk input[type="range"]::-moz-range-track{height:20px;background:none}
+section[data-name="Map"] .ttrk input[type="range"]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--milk);border:2px solid var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+section[data-name="Map"] .tticks{position:relative;height:16px;margin:2px 8px 0;font-size:10px;line-height:16px;color:var(--on-mute)}
+section[data-name="Map"] .tticks span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+section[data-name="Map"] .tticks .today{transform:none;padding:0 7px;border-radius:999px;background:var(--ink);color:#fff;font-weight:700}
+section[data-name="Map"] .tread{min-width:76px;font-size:13px;font-weight:600;text-align:right}
+
+/* on the map, bottom left: what the colours mean, then the scale */
+/* everything along the bottom left, in one column: the key, the time bar, then the coordinates and scale at the very bottom */
+section[data-name="Map"] .dock{position:absolute;left:var(--gap);right:calc(var(--gap) * 2 + var(--btn));bottom:var(--gap);display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+section[data-name="Map"] .legend{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+section[data-name="Map"] .legend svg.i{width:14px;height:14px;color:var(--lc)}
+section[data-name="Map"] .legend .lg{width:72px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--g0),var(--g1),var(--g2));box-shadow:inset 0 0 0 1px rgba(10,11,15,.06)}
+section[data-name="Map"] .legend .ends{font-weight:500;color:var(--on-mute)}
+section[data-name="Map"] .foot{display:flex;align-items:center;gap:14px;padding-left:12px;font-size:11px;font-weight:600;color:var(--on-mute);text-shadow:0 1px 2px rgba(255,255,255,.9)}
+section[data-name="Map"] .scale{display:flex;align-items:center;gap:6px}
+section[data-name="Map"] .scale i{display:block;height:6px;border:1.5px solid var(--on-mute);border-top:0}
+
+/* on the map, top middle under the chips: "Finding you…" or what went wrong, for a moment */
+section[data-name="Map"] .hint{position:absolute;top:64px;left:50%;transform:translateX(-50%);max-width:calc(100% - 32px);display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;text-align:center}
+section[data-name="Map"] .hint[data-warn]{background:var(--peach-300);border-color:rgba(207,63,66,.25);color:#a1262a}
+
+/* dates: a From and a To, one day up to three years ahead */
+section[data-name="Map"] .dline{display:flex;gap:8px;margin-top:12px;font-size:13px;color:var(--on-mute)}
+section[data-name="Map"] .dline b{color:var(--on)}
+section[data-name="Map"] .dline svg.i{margin-top:2px}
+section[data-name="Map"] .adv{display:grid;gap:10px;margin-top:12px}
+section[data-name="Map"] .adv .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+section[data-name="Map"] .adv label{display:grid;gap:6px;font-size:12px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .adv input{width:100%;min-width:0;height:40px;padding:0 10px;border-radius:10px;border:1px solid rgba(10,11,15,.16);background:var(--milk);color:var(--on);font-size:13px;font-variant-numeric:tabular-nums}
+section[data-name="Map"] .adv input:focus{outline:none;border-color:var(--on);box-shadow:0 0 0 3px rgba(10,11,15,.08)}
+section[data-name="Map"] .quick{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+section[data-name="Map"] .quick button{height:30px;padding:0 6px;white-space:nowrap;border-radius:999px;background:var(--well);border:1px solid var(--on-line);font-size:12px;font-weight:600;transition-property:background-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .quick button:hover{background:rgba(10,11,15,.08)}
+section[data-name="Map"] .quick button:active{transform:scale(.96)}
+section[data-name="Map"] .err{padding:8px 10px;border-radius:10px;background:var(--peach-300);color:#a1262a;font-size:12px;font-weight:600}
+
+/* weather: the season at a glance */
+section[data-name="Map"] .sum{display:grid;gap:8px;padding:14px;border-radius:14px;background:var(--sand-150);border:1px solid var(--on-line)}
+section[data-name="Map"] .sum-t{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+section[data-name="Map"] .sum-t b{font-family:var(--serif);font-size:22px;font-weight:400;line-height:1.15}
+section[data-name="Map"] .sum-t span{font-size:12px;font-weight:600;color:var(--on-mute);white-space:nowrap}
+section[data-name="Map"] .sum-n{font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .sum-r{display:flex;align-items:flex-start;gap:8px;margin-top:2px;font-size:13px;font-weight:600}
+section[data-name="Map"] .sum-r svg.i{margin-top:2px;color:var(--rain)}
+section[data-name="Map"] .sum-r small{display:block;font-weight:500;color:var(--on-mute)}
+/* season colours, the same as the time bar */
+section[data-name="Map"] .wet{--sc:#8ec9ff}section[data-name="Map"] .cool{--sc:var(--sand-300)}section[data-name="Map"] .hot{--sc:#ffa9aa}
+
+/* weather: four tiles; tapping one shows it on the map */
+section[data-name="Map"] .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+section[data-name="Map"] .tile{display:grid;align-content:start;gap:6px;min-height:116px;padding:12px;border-radius:14px;border:1px solid var(--on-line);background:var(--milk);text-align:left;transition-property:background-color,border-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .tile:hover{background:var(--sand-150)}
+section[data-name="Map"] .tile:active{transform:scale(.98)}
+section[data-name="Map"] .tile[aria-pressed="true"]{background:var(--lt);border-color:color-mix(in srgb,var(--lc) 45%,transparent)}
+section[data-name="Map"] .tile .tl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .tile .tl svg.i{color:var(--lc)}
+section[data-name="Map"] .tile[aria-pressed="true"] .tl::after{content:"On map";margin-left:auto;padding:1px 7px;border-radius:999px;background:var(--milk);font-size:10px;font-weight:700;color:var(--on)}
+section[data-name="Map"] .tile .tv{font-size:20px;font-weight:700;line-height:1.1}
+section[data-name="Map"] .tile .tv small{font-size:12px;font-weight:500;color:var(--on-mute)}
+section[data-name="Map"] .tile .tc{font-size:12px;color:var(--on-mute);text-wrap:pretty}
+section[data-name="Map"] .meter{position:relative;display:block;height:6px;border-radius:3px;background:var(--well)}
+section[data-name="Map"] .meter i{position:absolute;left:0;top:0;bottom:0;width:var(--v);border-radius:3px;background:var(--lc)}
+section[data-name="Map"] .meter b{position:absolute;top:-3px;bottom:-3px;left:var(--u);width:2px;margin-left:-1px;border-radius:1px;background:var(--ink)}
+section[data-name="Map"] .lvl{display:flex;gap:4px}
+section[data-name="Map"] .lvl i{flex:1;height:6px;border-radius:3px;background:var(--well)}
+section[data-name="Map"] .lvl i.on{background:var(--lc)}
+
+/* weather: rain by month, with the usual amount as a line on each bar */
+section[data-name="Map"] .mb{margin-top:16px}
+section[data-name="Map"] .mb-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+section[data-name="Map"] .mb-k{display:flex;gap:12px;font-size:11px;color:var(--on-mute)}
+section[data-name="Map"] .mb-k i{display:inline-block;width:8px;height:8px;margin-right:4px;border-radius:2px;background:#8ec9ff}
+section[data-name="Map"] .mb-k i.u{width:10px;height:2px;border-radius:1px;background:var(--ink);vertical-align:3px}
+section[data-name="Map"] .bars{display:flex;align-items:flex-end;gap:2px;height:76px;margin-top:10px}
+section[data-name="Map"] .bars span{position:relative;flex:1;height:var(--h);min-height:2px;border-radius:3px 3px 1px 1px;background:var(--sc)}
+section[data-name="Map"] .bars span.ls{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.6) 0 2px,transparent 2px 4px)}
+section[data-name="Map"] .bars span::after{content:"";position:absolute;left:-1px;right:-1px;bottom:var(--u);height:2px;border-radius:1px;background:var(--ink)}
+section[data-name="Map"] .mb-x{display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--on-mute)}
+section[data-name="Map"] .mb-x.each{gap:2px}
+section[data-name="Map"] .mb-x.each span{flex:1;text-align:center}
+
+/* the seasons in your dates, and island groups */
+section[data-name="Map"] .seas{display:grid;margin-top:8px}
+section[data-name="Map"] .seas li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 0;border-top:1px solid var(--on-line)}
+section[data-name="Map"] .seas li:first-child{border-top:0}
+section[data-name="Map"] .seas b{font-weight:600}
+section[data-name="Map"] .seas .num{font-size:12px;color:var(--on-mute);text-align:right}
+section[data-name="Map"] .seas small{grid-column:1/-1;font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--well);font-size:11px;font-weight:600;color:var(--on-mute);vertical-align:1px}
+section[data-name="Map"] details.rest{margin-top:4px;border-top:1px solid var(--on-line)}
+section[data-name="Map"] details.rest summary{display:flex;align-items:center;justify-content:space-between;min-height:40px;font-size:13px;font-weight:600;cursor:pointer;list-style:none}
+section[data-name="Map"] details.rest summary::-webkit-details-marker{display:none}
+section[data-name="Map"] details.rest summary::after{content:"+";font-size:16px;color:var(--on-mute)}
+section[data-name="Map"] details.rest[open] summary::after{content:"–"}
+
+/* crops: a filter, then one short row per crop with its planting calendar; tap a row for why */
+section[data-name="Map"] .crops h3{font-size:15px;font-weight:700}
+section[data-name="Map"] .crops h3 span{color:var(--on-mute);font-weight:600}
+section[data-name="Map"] .cf{display:flex;gap:2px;margin-top:12px;padding:3px;border-radius:999px;background:var(--well)}
+section[data-name="Map"] .cf button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;color:var(--on-mute);white-space:nowrap;transition-property:background-color,color,box-shadow,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .cf button:hover:not(:disabled){color:var(--on)}
+section[data-name="Map"] .cf button:active:not(:disabled){transform:scale(.97)}
+section[data-name="Map"] .cf button[aria-pressed="true"]{background:var(--milk);color:var(--on);box-shadow:0 1px 2px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.06)}
+section[data-name="Map"] .cf button:disabled{opacity:.4;cursor:default}
+section[data-name="Map"] .cf button[data-f="all"]{--tone:var(--ink)}
+section[data-name="Map"] .cf .n{min-width:20px;height:18px;padding:0 6px;display:inline-grid;place-items:center;border-radius:999px;background:rgba(10,11,15,.07);font-size:11px;font-weight:700;color:var(--on-mute)}
+section[data-name="Map"] .cf button[aria-pressed="true"] .n{background:var(--tone);color:#fff}
+section[data-name="Map"] .cax{display:flex;justify-content:space-between;margin:14px 0 0;font-size:10px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .crl{display:grid}
+section[data-name="Map"] .crl>li{border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .crh{display:grid;grid-template-columns:minmax(0,1fr) auto 16px;gap:6px 10px;align-items:center;width:100%;padding:12px 0 10px;text-align:left}
+section[data-name="Map"] .crh .cn{min-width:0}
+section[data-name="Map"] .crh .cn b{font-size:14px;font-weight:700}
+section[data-name="Map"] .crh .cn small{font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .crh>svg.i{color:var(--on-mute);transition:transform 150ms ease-out}
+section[data-name="Map"] .crh>svg.i{grid-column:3}
+section[data-name="Map"] .crh .when{grid-column:1/-1;font-size:13px;font-weight:600}
+section[data-name="Map"] .crh .cnt{font-size:12px;font-weight:700}
+section[data-name="Map"] .fit{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;color:var(--tone);background:color-mix(in srgb,var(--tone) 14%,transparent)}
+section[data-name="Map"] .fit::before{content:"";width:7px;height:7px;border-radius:999px;background:var(--tone)}
+section[data-name="Map"] .good{--tone:var(--good-tone)}section[data-name="Map"] .fair{--tone:var(--fair-tone)}section[data-name="Map"] .poor{--tone:var(--poor-tone)}
+/* the calendar: your dates shaded, a ring at planting, a line while it grows, a diamond at harvest */
+section[data-name="Map"] .gantt{position:relative;grid-column:1/-1;height:14px}
+section[data-name="Map"] .gantt::before{content:"";position:absolute;left:0;right:0;top:6px;height:2px;border-radius:1px;background:var(--well)}
+section[data-name="Map"] .gantt .win{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--well)}
+section[data-name="Map"] .gantt .gr{position:absolute;top:5px;height:4px;border-radius:2px;background:var(--tone)}
+section[data-name="Map"] .gantt .pl,section[data-name="Map"] .cleg .pl{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:999px;background:var(--milk);border:2px solid var(--tone)}
+section[data-name="Map"] .gantt .hv,section[data-name="Map"] .cleg .hv{position:absolute;top:2px;width:9px;height:9px;margin-left:-4.5px;border-radius:2px;background:var(--tone);transform:rotate(45deg)}
+/* whole country: one dot per region */
+section[data-name="Map"] .dots{grid-column:1/-1;display:flex;gap:4px}
+section[data-name="Map"] .dots i,section[data-name="Map"] .cleg .dot{width:10px;height:10px;border-radius:999px;border:1.5px solid var(--sand-300)}
+section[data-name="Map"] .dots i.good,section[data-name="Map"] .cleg .dot.good{background:var(--good-tone);border-color:var(--good-tone)}
+section[data-name="Map"] .dots i.fair,section[data-name="Map"] .cleg .dot.fair{background:var(--fair-tone);border-color:var(--fair-tone)}
+section[data-name="Map"] .cleg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:11px;color:var(--on-mute);--tone:var(--good-tone)}
+section[data-name="Map"] .cleg span{display:inline-flex;align-items:center;gap:6px}
+section[data-name="Map"] .cleg .pl,section[data-name="Map"] .cleg .hv{position:relative;top:0;margin-left:0;flex:none}
+section[data-name="Map"] .cleg .gr{display:inline-block;width:14px;height:4px;border-radius:2px;background:var(--tone)}
+section[data-name="Map"] .cleg .dot{display:inline-block}
+section[data-name="Map"] .crops .note{margin-top:12px;font-size:12px;color:var(--on-mute)}
+
+/* ---- growing guide (from the master's My Farms, _archive/how-to-grow-2026-11-02): a row in an opened crop, then a centered modal ---- */
+section[data-name="Map"] [data-tone="soil"]{--tb:#fdf2e2;--tc:#8f5410}
+section[data-name="Map"] [data-tone="grow"]{--tb:var(--seafoam-300);--tc:var(--good-tone)}
+section[data-name="Map"] [data-tone="water"]{--tb:var(--mist-200);--tc:#1b6fb0}
+section[data-name="Map"] [data-tone="feed"]{--tb:var(--lilac-200);--tc:#7a3aa0}
+section[data-name="Map"] [data-tone="pest"]{--tb:var(--peach-300);--tc:var(--poor-tone)}
+section[data-name="Map"] [data-tone="harvest"]{--tb:#fff3dc;--tc:#9a5b00}
+section[data-name="Map"] .gd-meta{display:flex;flex-wrap:wrap;gap:4px}
+section[data-name="Map"] .gd-meta span{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:2px 9px 2px 7px;border-radius:12px;background:var(--sand-150);border:1px solid var(--on-line);font-size:12px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .gd-meta svg.i{flex:none;width:13px;height:13px}
+section[data-name="Map"] .gd-tag{height:22px;padding:0 8px;border-radius:999px;background:var(--lilac-200);color:#6b2a8c;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;display:grid;place-items:center}
+section[data-name="Map"] .gd-none{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .gd-row{display:grid;grid-template-columns:40px minmax(0,1fr) 24px;gap:12px;align-items:center;width:100%;margin-top:6px;padding:12px;border:1px solid var(--on-line);border-radius:14px;background:var(--milk);text-align:left;box-shadow:0 1px 2px rgba(0,0,0,.03);transition-property:border-color,box-shadow,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .gd-row:hover{border-color:rgba(0,0,0,.16);box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 18px rgba(0,0,0,.06)}
+section[data-name="Map"] .gd-row:active{transform:scale(.99)}
+section[data-name="Map"] .gd-row .ic{width:40px;height:40px;display:grid;place-items:center;border-radius:10px;background:var(--tb);color:var(--tc)}
+section[data-name="Map"] .gd-row .ic svg.i{width:20px;height:20px}
+section[data-name="Map"] .gd-row .tx{min-width:0;display:grid;gap:6px}
+section[data-name="Map"] .gd-row .gd-h{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+section[data-name="Map"] .gd-row b{font-size:14px;font-weight:600;line-height:1.25;color:var(--on)}
+section[data-name="Map"] .gd-row .go{width:24px;height:24px;display:grid;place-items:center;color:var(--on-mute);transition:transform 150ms ease-out,color 150ms ease-out}
+section[data-name="Map"] .gd-row:hover .go{color:var(--on);transform:translateX(2px)}
+section[data-name="Map"] .gm-scrim{position:fixed;inset:0;z-index:90;background:rgba(8,9,10,.4);animation:gm-fade 200ms ease-out}
+section[data-name="Map"] .gm{position:fixed;left:50%;top:50%;z-index:91;width:min(1160px,calc(100vw - 48px));height:min(760px,calc(100svh - 48px));transform:translate(-50%,-50%);display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:var(--milk);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 24px 64px rgba(0,0,0,.24);overflow:hidden;animation:gm-in 220ms cubic-bezier(.2,.8,.2,1)}
+section[data-name="Map"] .gm:focus{outline:none}
+@keyframes gm-in{from{opacity:0;transform:translate(-50%,-48%) scale(.98)}to{opacity:1;transform:translate(-50%,-50%)}}
+@keyframes gm-fade{from{opacity:0}to{opacity:1}}
+section[data-name="Map"] .gm-head{display:grid;grid-template-columns:48px minmax(0,1fr) 40px;gap:14px;align-items:start;padding:20px 16px 18px 20px;border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .gm-head .ic{width:48px;height:48px;display:grid;place-items:center;border-radius:12px;background:var(--tb);color:var(--tc)}
+section[data-name="Map"] .gm-head .ic svg.i{width:24px;height:24px}
+section[data-name="Map"] .gm-head .tx{min-width:0;display:grid;gap:8px}
+section[data-name="Map"] .gm-head .tl{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+section[data-name="Map"] .gm-head h2{font-family:var(--serif);font-size:28px;line-height:1.05;letter-spacing:-.02em}
+section[data-name="Map"] .gm-head h2 small{font-family:var(--sans);font-size:14px;font-weight:500;letter-spacing:0;color:var(--on-mute)}
+section[data-name="Map"] .gm-when{font-size:15px;font-weight:600}
+/* "When to plant": the crop's calendar (a place) or its regions (the whole country) */
+section[data-name="Map"] .gm-plan{display:grid;gap:6px;margin-top:12px;padding-left:44px;font-size:14px;line-height:1.55;color:var(--on-mute)}
+section[data-name="Map"] .gm-plan b{color:var(--on);font-weight:600}
+section[data-name="Map"] .gm-plan .cax{margin:4px 0 0}
+section[data-name="Map"] .gm-plan .cleg{margin:4px 0 8px}
+section[data-name="Map"] .gm-plan .cleg .win{display:inline-block;width:14px;height:12px;border-radius:3px;background:var(--well)}
+/* a crop with no guide yet: no topic list, a smaller window */
+section[data-name="Map"] .gm[data-solo]{width:min(640px,calc(100vw - 32px));height:auto;max-height:min(760px,calc(100svh - 32px))}
+section[data-name="Map"] .gm[data-solo] .gm-main{grid-template-columns:minmax(0,1fr)}
+section[data-name="Map"] .gm[data-solo] .gm-nav,section[data-name="Map"] .gm[data-solo] .gm-foot{display:none}
+section[data-name="Map"] .gm[data-solo] .gd-none{margin:0 0 24px}
+section[data-name="Map"] .gm-main{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:0}
+section[data-name="Map"] .gm-nav{display:flex;flex-direction:column;gap:2px;padding:12px 10px;border-right:1px solid var(--on-line);background:var(--sand-150);overflow:auto}
+section[data-name="Map"] .gm-nav a{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 10px 4px 6px;border-radius:10px;font-size:13px;font-weight:600;color:var(--on-mute);text-decoration:none;transition-property:background-color,color,box-shadow;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .gm-nav a:hover{color:var(--on);background:rgba(0,0,0,.03)}
+section[data-name="Map"] .gm-nav a[aria-current]{background:var(--milk);color:var(--on);box-shadow:0 1px 2px rgba(0,0,0,.06),0 0 0 1px var(--on-line)}
+section[data-name="Map"] .gm .ti{width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:8px;background:var(--tb);color:var(--tc)}
+section[data-name="Map"] .gm .ti svg.i{width:15px;height:15px}
+section[data-name="Map"] .gm-body{position:relative;overflow:auto;padding:4px 40px 32px}
+section[data-name="Map"] .gm-sec{padding:20px 0 12px}
+section[data-name="Map"] .gm-sec+.gm-sec{border-top:1px solid var(--on-line)}
+section[data-name="Map"] .gm-sec h3{display:flex;align-items:center;gap:12px;font-family:var(--sans);font-size:16px;font-weight:600}
+section[data-name="Map"] .gm-sec h3:focus{outline:none}
+section[data-name="Map"] .gm-sec h3 .ti{width:32px;height:32px}
+section[data-name="Map"] .gm-sec h3 .ti svg.i{width:17px;height:17px}
+section[data-name="Map"] .gm-sec h3 .tc{margin-left:auto;font-size:12px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .gm-sec ol{list-style:none;margin:12px 0 0;padding:0 0 0 44px;display:grid;gap:10px;counter-reset:gd}
+section[data-name="Map"] .gm-sec li{position:relative;padding-left:30px;font-size:14px;line-height:1.55;text-wrap:pretty;counter-increment:gd}
+section[data-name="Map"] .gm-sec li::before{content:counter(gd);position:absolute;left:0;top:1px;width:20px;height:20px;display:grid;place-items:center;border-radius:999px;background:var(--sand-150);border:1px solid var(--on-line);font-size:11px;font-weight:700;color:var(--on-mute);font-variant-numeric:tabular-nums}
+section[data-name="Map"] .gm-foot{display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid var(--on-line);background:var(--sand-150);font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .gm-foot svg.i{width:14px;height:14px}
+section[data-name="Map"] .src{margin-top:auto;padding:12px var(--sb-in, 20px) 16px;font-size:11px;color:var(--on-mute)}
+
+@media (prefers-reduced-motion:reduce){section[data-name="Map"] *{transition-duration:0ms!important;animation-duration:0ms!important}}
+/* phones: logo, search and a dates icon on top; the two round buttons float on the map; the sidebar is a sheet from the bottom */
+@media (max-width:720px){
+  section[data-name="Map"]{--gap:10px;--btn:42px;--top:60px;--rl:0px}
+  section[data-name="Map"] .top{gap:8px;padding:0 10px}
+  section[data-name="Map"] .dbtn{width:44px;padding:0;justify-content:center}
+  section[data-name="Map"] .dbtn span,section[data-name="Map"] .dbtn>svg.i:last-child{display:none}
+  section[data-name="Map"] .dp{left:10px;right:10px;width:auto;max-width:none}
+  section[data-name="Map"] .rl,section[data-name="Map"][data-sb] .rl{top:calc(var(--top) + 64px);right:var(--gap)}
+  section[data-name="Map"] .layers{left:4px;max-width:calc(100% - 8px)}
+  section[data-name="Map"] .tabb{box-shadow:var(--shadow)}
+  section[data-name="Map"] .tabb::after{display:none}
+  section[data-name="Map"] .sb{--sb-in:20px;z-index:16;top:auto;left:0;right:0;width:auto;max-height:70svh;border:0;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(16,24,20,.14);animation-name:sb-up}
+  @keyframes sb-up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  section[data-name="Map"] .sb-x{display:grid}
+  section[data-name="Map"][data-sb] .stage,section[data-name="Map"][data-sb] .mapui{right:0}
+  section[data-name="Map"] .rb .tip{display:none}
+  section[data-name="Map"] .foot .ll{display:none}
+  section[data-name="Map"] .tread,section[data-name="Map"] .tticks{display:none}
+  section[data-name="Map"] .gd-row{grid-template-columns:36px minmax(0,1fr) 24px;gap:10px}
+  section[data-name="Map"] .gd-row .ic{width:36px;height:36px}
+  section[data-name="Map"] .gm{width:calc(100vw - 16px);height:calc(100svh - 16px)}
+  section[data-name="Map"] .gm-head{grid-template-columns:40px minmax(0,1fr) 40px;padding:16px 8px 14px 16px}
+  section[data-name="Map"] .gm-head .ic{width:40px;height:40px}
+  section[data-name="Map"] .gm-head h2{font-size:24px}
+  section[data-name="Map"] .gm-main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  section[data-name="Map"] .gm-nav{flex-direction:row;padding:8px 12px;border-right:0;border-bottom:1px solid var(--on-line);overflow-x:auto}
+  section[data-name="Map"] .gm-nav a{flex:none;white-space:nowrap}
+  section[data-name="Map"] .gm-body{padding:0 16px 20px}
+  section[data-name="Map"] .gm-sec ol,section[data-name="Map"] .gm-plan{padding-left:0}
+}
+/* ---- skeleton loading: grey shapes stand in for a moment while the map, the sidebar or a guide "loads" ---- */
+@keyframes sk-shine{from{background-position:100% 0}to{background-position:0 0}}
+section[data-name="Map"] .sk{display:block;max-width:100%;border-radius:8px;background:linear-gradient(90deg,var(--sand-50) 0%,var(--sand-150) 45%,var(--sand-50) 90%) 0 0/300% 100%;animation:sk-shine 1.2s ease-in-out infinite}
+section[data-name="Map"] .sk+.sk{margin-top:8px}
+section[data-name="Map"] .sk-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 16px}
+section[data-name="Map"] .sk-tiles .sk{margin:0;border-radius:14px}
+section[data-name="Map"] .sk-row{padding:12px 0;border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .sk-row:first-of-type{margin-top:12px}
+section[data-name="Map"] .gm-nav .sk{margin:4px 6px}
+section[data-name="Map"] .gm-body .sk-sec{padding:20px 0 12px}
+section[data-name="Map"] .mapload{position:fixed;z-index:9;top:var(--top);right:var(--rl);bottom:0;left:0;pointer-events:none;background:linear-gradient(90deg,#dcebf4 0%,#ebf4f9 45%,#dcebf4 90%) 0 0/300% 100%;animation:sk-shine 1.4s ease-in-out infinite;transition:opacity 300ms ease-out}
+section[data-name="Map"][data-sb] .mapload{right:calc(var(--rl) + var(--sw))}
+section[data-name="Map"] .mapload[data-done]{opacity:0;animation:none}
+@media (max-width:720px){section[data-name="Map"][data-sb] .mapload{right:0}}
+
+/* ==================== full report (from _archive/full-report-2026-11-05/full-report-concept-2.html): a page over the map, under the top bar ==================== */
+section[data-name="Map"] .rp{--rp-nav:52px;position:fixed;z-index:17;top:var(--top);left:0;right:0;bottom:0;overflow:auto;overscroll-behavior:contain;background:var(--sand-150);animation:rp-in 180ms ease-out}
+@keyframes rp-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+section[data-name="Map"] .rp-wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* the head: the way back, the place, its address, the dates, every month on the season bar; the short answer is a strip under it */
+section[data-name="Map"] .rp-head{padding:12px 0 16px}
+section[data-name="Map"] .rp-crumb{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--on-mute)}
+section[data-name="Map"] .rp-back{display:inline-flex;align-items:center;gap:4px;height:40px;margin-left:-10px;padding:0 10px 0 6px;border-radius:999px;font-weight:600;color:var(--on);transition-property:background-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rp-back svg.i{transform:rotate(180deg)}
+section[data-name="Map"] .rp-back:hover{background:var(--well)}
+section[data-name="Map"] .rp-back:active{transform:scale(.97)}
+section[data-name="Map"] .rp-crumb .sep{color:var(--sand-300)}
+section[data-name="Map"] .rp-id h1{margin-top:12px;font-family:var(--serif);font-size:clamp(32px,4.2vw,44px);line-height:1.02;letter-spacing:-.02em}
+section[data-name="Map"] .rp-id h1:focus{outline:none}
+section[data-name="Map"] .rp-addr{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:14px;color:var(--on-mute)}
+section[data-name="Map"] .rp-addr svg.i{width:14px;height:14px}
+section[data-name="Map"] .rp-when{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;margin-top:14px;font-size:14px}
+section[data-name="Map"] .rp-when b{font-weight:700}
+section[data-name="Map"] .rp-when span{color:var(--on-mute)}
+section[data-name="Map"] .rp-when svg.i{color:var(--on-mute)}
+/* the season bar: one cell per month, the season names over their months, the years under January */
+section[data-name="Map"] .rp-rib{margin-top:10px}
+section[data-name="Map"] .rp-rib .row{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));column-gap:2px}
+section[data-name="Map"] .rp-rib .sl span{padding:0 2px 4px;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+section[data-name="Map"] .rp-rib .ms span{display:grid;place-items:center;height:24px;border-radius:4px;background:var(--sc);font-size:11px;font-weight:600;color:rgba(8,9,10,.78)}
+section[data-name="Map"] .rp-rib .ms span.now{box-shadow:inset 0 0 0 2px var(--ink);color:var(--ink);font-weight:800}
+section[data-name="Map"] .rp-rib .ys span{padding-top:4px;font-size:10px;color:var(--on-mute);white-space:nowrap;overflow:visible}
+/* the short answer: one slim strip under the head. The best move, the main warning, the way to all moves; stacked on phones */
+section[data-name="Map"] .rp-answer{display:grid;gap:12px;align-items:center;margin-bottom:16px;padding:14px 18px;border-radius:16px;background:var(--seafoam-300);border:1px solid color-mix(in srgb,var(--good-tone) 18%,transparent)}
+@media (min-width:900px){section[data-name="Map"] .rp-answer{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) auto;gap:0 24px;padding:14px 16px 14px 20px}}
+section[data-name="Map"] .rp-answer .best{display:grid;gap:4px;min-width:0}
+section[data-name="Map"] .rp-answer .kick{color:var(--good-tone);font-weight:700}
+section[data-name="Map"] .rp-answer h2{font-family:var(--serif);font-size:21px;line-height:1.15}
+section[data-name="Map"] .rp-answer .pl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:2px;font-size:13px;font-weight:600}
+section[data-name="Map"] .rp-answer .pl .fit{height:22px}
+section[data-name="Map"] .rp-answer .wo{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--good-tone) 18%,transparent);font-size:12px;color:var(--on-mute)}
+@media (min-width:900px){section[data-name="Map"] .rp-answer .wo{align-self:stretch;align-content:center;padding:0 0 0 24px;border-top:0;border-left:1px solid color-mix(in srgb,var(--good-tone) 18%,transparent)}}
+section[data-name="Map"] .rp-answer .wo .ic{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:var(--milk);color:var(--tc)}
+section[data-name="Map"] .rp-answer .wo b{display:block;font-size:13px;color:var(--on)}
+section[data-name="Map"] .rp-go{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px 0 16px;border-radius:999px;background:var(--green);color:#fff;font-size:13px;font-weight:700;white-space:nowrap;transition-property:background-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rp-go:hover{background:#0a7a52}
+section[data-name="Map"] .rp-go:active{transform:scale(.97)}
+section[data-name="Map"] .rp-notice{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;padding:12px 14px;border-radius:14px;background:var(--mist-200);color:#1b4f7a;font-size:14px}
+section[data-name="Map"] .rp-notice svg.i{margin-top:2px}
+
+/* the section links, held at the top while the report scrolls */
+section[data-name="Map"] .rp-nav{position:sticky;top:0;z-index:3;background:rgba(250,248,245,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--on-line);border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .rp-nav ul{display:flex;gap:4px;height:var(--rp-nav);align-items:center;overflow-x:auto;scrollbar-width:none}
+section[data-name="Map"] .rp-nav ul::-webkit-scrollbar{display:none}
+section[data-name="Map"] .rp-nav button{height:36px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600;color:var(--on-mute);white-space:nowrap;transition-property:background-color,color;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rp-nav button:hover{background:var(--well);color:var(--on)}
+section[data-name="Map"] .rp-nav button[aria-current="true"]{background:var(--ink);color:#fff}
+
+/* the body */
+section[data-name="Map"] .rp-layout{display:grid;gap:16px;padding-top:20px;padding-bottom:24px}
+@media (min-width:1024px){section[data-name="Map"] .rp-layout{grid-template-columns:minmax(0,1fr) 320px;align-items:start;gap:24px}}
+@media (min-width:1024px) and (min-height:760px){section[data-name="Map"] .rp-rail{position:sticky;top:calc(var(--rp-nav) + 20px)}}
+section[data-name="Map"] .rp-main,section[data-name="Map"] .rp-rail{display:grid;gap:16px;min-width:0}
+section[data-name="Map"] .rp-card{padding:20px;border-radius:20px;background:var(--milk);border:1px solid var(--on-line);scroll-margin-top:calc(var(--rp-nav) + 12px)}
+@media (min-width:768px){section[data-name="Map"] .rp-card{padding:22px 24px}}
+section[data-name="Map"] .rp-h{display:grid;grid-template-columns:36px minmax(0,1fr);gap:0 12px;align-items:center}
+section[data-name="Map"] .rp-h .ic{grid-row:span 2;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:var(--tb);color:var(--tc)}
+section[data-name="Map"] .rp-h .ic svg.i{width:18px;height:18px}
+section[data-name="Map"] .rp-h h2{font-family:var(--serif);font-size:22px;line-height:1.1}
+section[data-name="Map"] .rp-h p{font-size:13px;color:var(--on-mute)}
+section[data-name="Map"] [data-tone="none"]{--tb:var(--well);--tc:var(--on-mute)}
+section[data-name="Map"] [data-rl="rain"]{--lc:#2992e3}section[data-name="Map"] [data-rl="heat"]{--lc:var(--peach-100)}section[data-name="Map"] [data-rl="soil"]{--lc:var(--brown)}section[data-name="Map"] [data-rl="plants"]{--lc:var(--green)}
+
+/* right now: one row, like a weather app's current conditions */
+section[data-name="Map"] .rp-now{display:grid;grid-template-columns:1fr 1fr;margin-top:16px;border-top:1px solid var(--on-line)}
+@media (min-width:900px){section[data-name="Map"] .rp-now{grid-template-columns:1.4fr repeat(4,minmax(0,1fr))}}
+section[data-name="Map"] .rp-cell{display:grid;align-content:start;gap:6px;min-width:0;padding:14px 14px 4px 0}
+section[data-name="Map"] .rp-cell+.rp-cell{padding-left:14px;border-left:1px solid var(--on-line)}
+section[data-name="Map"] .rp-cell .tl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .rp-cell .tl svg.i{color:var(--lc,var(--on-mute))}
+section[data-name="Map"] .rp-cell .tv{font-size:20px;font-weight:700;line-height:1.1}
+section[data-name="Map"] .rp-cell .tc{font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .rp-cell .prog{display:block;height:6px;border-radius:3px;background:var(--well);overflow:hidden}
+section[data-name="Map"] .rp-cell .prog i{display:block;height:100%;width:var(--p);border-radius:3px;background:var(--sc)}
+@media (max-width:899px){
+  section[data-name="Map"] .rp-cell{padding:14px 0 12px;border-bottom:1px solid var(--on-line)}
+  section[data-name="Map"] .rp-cell+.rp-cell{padding-left:0;border-left:0}
+  section[data-name="Map"] .rp-cell.season{grid-column:1/-1}
+  section[data-name="Map"] .rp-cell:nth-child(even){padding-right:14px;border-right:1px solid var(--on-line)}
+  section[data-name="Map"] .rp-cell:nth-child(odd):not(.season){padding-left:14px}
+  section[data-name="Map"] .rp-cell:nth-last-child(-n+2){border-bottom:0}
+}
+
+/* looking ahead */
+section[data-name="Map"] .rp-alerts{display:grid;margin-top:10px}
+section[data-name="Map"] .rp-alert{display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--on-line)}
+section[data-name="Map"] .rp-alert:first-child{border-top:0}
+section[data-name="Map"] .rp-alert .ic{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:var(--tb);color:var(--tc)}
+section[data-name="Map"] .rp-alert b{display:block;font-size:14px;font-weight:700}
+section[data-name="Map"] .rp-alert p{margin-top:2px;font-size:13px;color:var(--on-mute)}
+
+/* month by month: a rain chart and a heat chart on the same months (two charts, never two scales on one) */
+section[data-name="Map"] .rp-ch{--ax:40px;position:relative;margin-top:18px}
+section[data-name="Map"] .rp-ch .cap{display:flex;justify-content:space-between;gap:8px;padding-left:var(--ax);font-size:12px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .rp-ch .plot{position:relative;margin-left:var(--ax)}
+section[data-name="Map"] .rp-ch .gl{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--on-line)}
+section[data-name="Map"] .rp-ch .gl span{position:absolute;right:calc(100% + 8px);top:-7px;font-size:10px;color:var(--on-mute);white-space:nowrap}
+section[data-name="Map"] .rp-ch .rain{height:168px;margin-top:8px}
+section[data-name="Map"] .rp-ch .cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr))}
+section[data-name="Map"] .rp-ch .col{position:relative;display:block;outline-offset:-2px;border-radius:6px 6px 0 0;background:color-mix(in srgb,var(--sc) 16%,transparent);cursor:default}
+section[data-name="Map"] .rp-ch .col:hover,section[data-name="Map"] .rp-ch .col:focus-visible,section[data-name="Map"] .rp-ch .col[data-on]{background:color-mix(in srgb,var(--sc) 34%,transparent)}
+section[data-name="Map"] .rp-ch .col .bar{position:absolute;left:50%;bottom:0;width:min(58%,28px);height:var(--h);min-height:2px;transform:translateX(-50%);border-radius:4px 4px 0 0;background:#2992e3}
+section[data-name="Map"] .rp-ch .col.ls .bar{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 2px,transparent 2px 4px)}
+section[data-name="Map"] .rp-ch .col .u{position:absolute;left:50%;bottom:var(--u);width:min(78%,36px);height:2px;margin-bottom:-1px;transform:translateX(-50%);border-radius:1px;background:var(--ink);box-shadow:0 0 0 1px var(--milk)}
+section[data-name="Map"] .rp-ch .heat{height:64px;margin-top:22px}
+section[data-name="Map"] .rp-ch .heat svg{position:absolute;inset:0;width:100%;height:100%;max-width:none;overflow:visible}
+section[data-name="Map"] .rp-ch .heat polyline{fill:none;stroke:var(--heat);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+section[data-name="Map"] .rp-ch .heat .pt{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:999px;background:var(--heat);box-shadow:0 0 0 2px var(--milk)}
+section[data-name="Map"] .rp-ch .xs{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));margin:8px 0 0 var(--ax);font-size:11px;font-weight:600;color:var(--on-mute);text-align:center}
+section[data-name="Map"] .rp-ch .xs span{min-width:0;white-space:nowrap}
+section[data-name="Map"] .rp-ch .xs span.now{color:var(--ink);font-weight:800}
+section[data-name="Map"] .rp-ch .xs small{display:block;font-size:10px;font-weight:500}
+section[data-name="Map"] .rp-tip{position:absolute;z-index:2;top:0;width:max-content;max-width:220px;padding:10px 12px;border-radius:12px;background:var(--ink);color:#fff;font-size:12px;line-height:1.4;pointer-events:none;transform:translateX(-50%);box-shadow:0 8px 24px rgba(8,9,10,.24)}
+section[data-name="Map"] .rp-tip b{display:block;font-size:13px}
+section[data-name="Map"] .rp-tip span{display:block;color:rgba(255,255,255,.78)}
+section[data-name="Map"] .rp-key{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:14px;font-size:11px;color:var(--on-mute)}
+section[data-name="Map"] .rp-key span{display:inline-flex;align-items:center;gap:6px}
+section[data-name="Map"] .rp-key i{display:inline-block;width:10px;height:12px;border-radius:3px 3px 0 0;background:#2992e3}
+section[data-name="Map"] .rp-key i.u{width:14px;height:2px;border-radius:1px;background:var(--ink)}
+section[data-name="Map"] .rp-key i.t{width:14px;height:2px;border-radius:1px;background:var(--heat)}
+/* the numbers behind the charts, one row per month */
+section[data-name="Map"] .rp-sg{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:14px 0 6px}
+section[data-name="Map"] .rp-sg::before{content:"";align-self:center;width:10px;height:10px;border-radius:3px;background:var(--sc)}
+section[data-name="Map"] .rp-sg b{font-size:13px;font-weight:700}
+section[data-name="Map"] .rp-sg span{font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .rp-mo{display:grid;grid-template-columns:72px minmax(0,1fr) 84px 64px;gap:10px;align-items:center;min-height:44px;padding:6px 0;border-top:1px solid var(--on-line);font-size:13px}
+section[data-name="Map"] .rp-mo .m{font-weight:700}
+section[data-name="Map"] .rp-mo .w{display:flex;align-items:center;gap:6px;min-width:0;font-weight:600}
+section[data-name="Map"] .rp-mo .w svg.i{color:var(--on-mute)}
+section[data-name="Map"] .rp-mo .r,section[data-name="Map"] .rp-mo .t{text-align:right;font-weight:700}
+section[data-name="Map"] .rp-mo .r small,section[data-name="Map"] .rp-mo .t small{display:block;font-size:11px;font-weight:500;color:var(--on-mute)}
+section[data-name="Map"] .rp-mo .now-t{background:var(--ink);color:#fff}
+
+/* best moves */
+section[data-name="Map"] .rp-moves{display:grid;margin-top:6px;counter-reset:mv}
+section[data-name="Map"] .rp-mv{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;padding:16px 0;border-top:1px solid var(--on-line);counter-increment:mv}
+section[data-name="Map"] .rp-mv:first-child{border-top:0}
+section[data-name="Map"] .rp-mv::before{content:counter(mv);width:28px;height:28px;display:grid;place-items:center;border-radius:999px;background:var(--sand-150);border:1px solid var(--on-line);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+section[data-name="Map"] .rp-mv:first-child::before{background:var(--green);border-color:var(--green);color:#fff}
+section[data-name="Map"] .rp-mv h3{font-family:var(--serif);font-size:19px;line-height:1.2}
+section[data-name="Map"] .rp-mv .d{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;font-size:13px;color:var(--on-mute)}
+section[data-name="Map"] .rp-mv .gd-row,section[data-name="Map"] .rp-mv .gd-none{margin-top:10px}
+
+/* what to plant */
+section[data-name="Map"] .rp-cg{margin-top:14px}
+section[data-name="Map"] .rp-cg>.kick{display:flex;justify-content:space-between}
+section[data-name="Map"] .rp-cax{display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .rp-crop{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:12px 0;border-top:1px solid var(--on-line)}
+section[data-name="Map"] .rp-crop .cn b{font-size:14px;font-weight:700}
+section[data-name="Map"] .rp-crop .cn small{margin-left:4px;font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .rp-crop .when{grid-column:1/-1;font-size:12px;font-weight:600}
+section[data-name="Map"] .rp-crop .why{grid-column:1/-1;font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .rp-gl{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;gap:6px;min-height:32px;margin-left:-8px;padding:0 10px 0 8px;border-radius:999px;font-size:12px;font-weight:600;color:var(--good-tone);transition-property:background-color;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rp-gl:hover{background:var(--seafoam-300)}
+section[data-name="Map"] .rp-gl svg.i{width:14px;height:14px}
+section[data-name="Map"] details.rp-rest summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;margin-top:12px;border-top:1px solid var(--on-line);font-size:13px;font-weight:600;cursor:pointer;list-style:none}
+section[data-name="Map"] details.rp-rest summary::-webkit-details-marker{display:none}
+section[data-name="Map"] details.rp-rest summary svg.i{color:var(--on-mute);transition:transform 150ms ease-out}
+section[data-name="Map"] details.rp-rest[open] summary svg.i{transform:rotate(180deg)}
+section[data-name="Map"] .rp-card .cleg .win{display:inline-block;width:14px;height:12px;border-radius:3px;background:var(--well)}
+
+/* farm work by month */
+section[data-name="Map"] .rp-tw{margin-top:12px;overflow-x:auto;overscroll-behavior-x:contain}
+section[data-name="Map"] .rp-work{min-width:100%;border-collapse:collapse;font-size:13px}
+section[data-name="Map"] .rp-work th,section[data-name="Map"] .rp-work td{height:42px;padding:0 4px;text-align:center;border-top:1px solid var(--on-line)}
+section[data-name="Map"] .rp-work thead th{height:38px;border-top:0;font-size:11px;font-weight:700;color:var(--on-mute);white-space:nowrap}
+section[data-name="Map"] .rp-work thead th small{display:block;font-weight:500}
+section[data-name="Map"] .rp-work th[scope="row"]{position:sticky;left:0;z-index:1;min-width:156px;padding-right:12px;background:var(--milk);text-align:left;font-weight:600}
+section[data-name="Map"] .rp-work th[scope="row"] span{display:flex;align-items:center;gap:8px}
+section[data-name="Map"] .rp-work th[scope="row"] svg.i{color:var(--on-mute)}
+section[data-name="Map"] .rp-work td{min-width:36px}
+section[data-name="Map"] .rp-dot{display:inline-block;width:14px;height:14px;border-radius:999px;vertical-align:middle}
+section[data-name="Map"] .rp-dot.good{background:var(--good-tone)}
+section[data-name="Map"] .rp-dot.ok{background:color-mix(in srgb,var(--fair-tone) 30%,transparent);border:2px solid var(--fair-tone)}
+section[data-name="Map"] .rp-dot.no{width:8px;height:8px;background:var(--sand-300)}
+section[data-name="Map"] .rp-wkey{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:11px;color:var(--on-mute)}
+section[data-name="Map"] .rp-wkey span{display:inline-flex;align-items:center;gap:6px}
+
+/* your dates in numbers */
+section[data-name="Map"] .rp-figs{display:grid;grid-template-columns:1fr 1fr;margin-top:12px;border-top:1px solid var(--on-line)}
+@media (min-width:720px){section[data-name="Map"] .rp-figs{grid-template-columns:repeat(4,1fr)}}
+section[data-name="Map"] .rp-fig{display:grid;align-content:start;gap:4px;padding:14px 14px 14px 0;border-bottom:1px solid var(--on-line)}
+section[data-name="Map"] .rp-fig .tl{font-size:12px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .rp-fig .tv{font-family:var(--serif);font-size:26px;line-height:1}
+section[data-name="Map"] .rp-fig .tc{font-size:12px;color:var(--on-mute)}
+
+/* the rail: the region around the spot with the dates' rain on the land, then how sure the report is */
+section[data-name="Map"] .rp-mapc{padding:0;overflow:hidden}
+section[data-name="Map"] .rp-mp{width:100%;height:auto;max-width:none;background:#dcebf4}
+section[data-name="Map"] .rp-mp .coast{fill:none;stroke:rgba(10,11,15,.35);stroke-width:1}
+section[data-name="Map"] .rp-mp .lake{fill:#dcebf4;stroke:rgba(10,11,15,.35);stroke-width:1}
+section[data-name="Map"] .rp-mp .pin path{fill:var(--good-tone);stroke:var(--milk);stroke-width:1.5}
+section[data-name="Map"] .rp-mp .pin circle{fill:var(--milk)}
+section[data-name="Map"] .rp-mp text{font-family:var(--sans);font-size:13px;font-weight:700;fill:var(--ink);paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
+section[data-name="Map"] .rp-mapc .foot{display:grid;gap:10px;padding:12px 16px 16px}
+section[data-name="Map"] .rp-mleg{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;color:var(--on-mute)}
+section[data-name="Map"] .rp-mleg .lg{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#ecf7ff,#8ec9ff,#2992e3)}
+section[data-name="Map"] .rp-mapc .ll{font-size:12px;color:var(--on-mute)}
+section[data-name="Map"] .rp-onmap{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;border-radius:999px;border:1px solid var(--on-line);font-size:14px;font-weight:600;transition-property:background-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rp-onmap:hover{background:var(--hover)}
+section[data-name="Map"] .rp-onmap:active{transform:scale(.98)}
+section[data-name="Map"] .rp-about h2{font-size:14px;font-weight:700}
+section[data-name="Map"] .rp-about ul{display:grid;gap:10px;margin-top:10px;font-size:13px;color:var(--on-mute)}
+section[data-name="Map"] .rp-about li{display:flex;gap:8px}
+section[data-name="Map"] .rp-about li svg.i{margin-top:2px}
+section[data-name="Map"] .rp-src{padding-bottom:32px;font-size:11px;color:var(--on-mute)}
+
+/* loading */
+section[data-name="Map"] .rp-skel{display:none}
+section[data-name="Map"] .rp[data-loading] .rp-layout{display:none}
+section[data-name="Map"] .rp[data-loading] .rp-skel{display:grid;gap:16px;padding-top:20px}
+section[data-name="Map"] .rp-skel .sk{border-radius:20px}
+
+/* the way in: the button at the foot of the sidebar (in v2) */
+section[data-name="Map"] .rp-open{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;border-radius:999px;background:var(--green);color:#fff;font-size:14px;font-weight:700;box-shadow:0 1px 2px rgba(8,9,10,.12),0 6px 16px rgba(12,140,94,.22);transition-property:background-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+section[data-name="Map"] .rp-open:hover{background:#0a7a52}
+section[data-name="Map"] .rp-open:active{transform:scale(.98)}
+
+@media (max-width:720px){
+  section[data-name="Map"] .rp-wrap{padding:0 16px}
+  section[data-name="Map"] .rp-ch{--ax:34px}
+  section[data-name="Map"] .rp-mo{grid-template-columns:60px minmax(0,1fr) 76px 52px}
+}
+
+/* the way in, at the foot of the sidebar */
+section[data-name="Map"] .sb-f{flex:none;padding:12px var(--sb-in);border-top:1px solid var(--on-line);background:var(--milk)}
+}
