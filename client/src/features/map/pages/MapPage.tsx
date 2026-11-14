@@ -1,16 +1,18 @@
 import { Cloud, Sprout, type LucideIcon } from 'lucide-react'
+import type { MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import { CropWindow } from '../components/CropWindow'
 import type { CropFilter } from '../components/CropsPanel'
 import { DatesPanel } from '../components/DatesPanel'
 import { FullReport } from '../components/FullReport'
 import { MapControls, type Hint } from '../components/MapControls'
+import { MapStage } from '../components/MapStage'
 import { Sidebar } from '../components/Sidebar'
 import { TimeBar } from '../components/TimeBar'
 import { TopBar } from '../components/TopBar'
 import { DEFAULT_MONTHS, lengthEnd, spanOf, TODAY, type Dates } from '../dates'
 import { useLoading } from '../hooks/useLoading'
-import { BOUNDS, coords, SPOT_W, type Place } from '../places'
+import { coords, SPOT_W, type Place } from '../places'
 import type { LayerKey, SideTab } from '../types'
 import './map.css'
 import './map-changes.css'
@@ -32,8 +34,8 @@ function focusBack(ref: { current: HTMLElement | null }) {
   if (el && document.contains(el)) el.focus()
 }
 
-/* The crop map page (from artifacts/master-template-v2.html). The map drawing itself is deferred:
-   the map area is a plain sea-coloured panel, and zoom, dragging and tapping a spot come later. */
+/* The crop map page (from artifacts/master-template-v2.html). The map is a MapLibre map (flat 2D
+   first, or a 3D globe) that flies to and pins the picked place; tapping a spot comes later. */
 export function MapPage() {
   const [place, setPlace] = useState<Place | null>(null)
   const [dates, setDates] = useState<Dates>(() => ({ from: TODAY, to: lengthEnd(TODAY, DEFAULT_MONTHS) }))
@@ -48,6 +50,8 @@ export function MapPage() {
   const [frame, setFrame] = useState<number | null>(null)
   const [playing, setPlaying] = useState(false)
   const [hint, setHint] = useState<Hint | null>(null)
+  const [map, setMap] = useState<MapLibreMap | null>(null)
+  const [is3d, setIs3d] = useState(false) /* the flat map first; 3D on request */
   const [locating, setLocating] = useState(false)
   const [sideToken, setSideToken] = useState(0)
   const [reportToken, setReportToken] = useState(0)
@@ -67,11 +71,12 @@ export function MapPage() {
     setSideOpen(open)
     if (open) setSideToken((n) => n + 1)
   }
-  const choose = (p: Place) => {
+  /* remember: false keeps a place out of the recent list (the person's own location: "Use my location" finds it fresh) */
+  const choose = (p: Place, remember = true) => {
     setHint(null)
     setPlace(p)
     setFilter(null)
-    setRecent((r) => [p, ...r.filter((x) => x.name !== p.name)].slice(0, RECENT_MAX))
+    if (remember) setRecent((r) => [p, ...r.filter((x) => x.name !== p.name)].slice(0, RECENT_MAX))
     openSide(true)
     setReportToken((n) => n + 1)
   }
@@ -114,8 +119,7 @@ export function MapPage() {
     navigator.geolocation.getCurrentPosition((pos) => {
       setLocating(false)
       const { longitude: lon, latitude: lat } = pos.coords
-      if (lon < BOUNDS.w || lon > BOUNDS.e || lat < BOUNDS.s || lat > BOUNDS.n) return setHint({ msg: 'You\'re outside the Philippines. This map covers the Philippines only.', warn: true })
-      choose({ name: 'Your location', sub: coords(lon, lat), lon, lat, w: SPOT_W })
+      choose({ name: 'Your location', sub: coords(lon, lat), lon, lat, w: SPOT_W }, false)
     }, (err) => {
       setLocating(false)
       setHint({ msg: err.code === 1 ? 'Location is blocked. Allow it in the browser, or search a city.' : 'Couldn\'t find your location. Search a city or tap the map.', warn: true })
@@ -193,9 +197,12 @@ export function MapPage() {
           onTile={toggleLayer} onFilter={setFilter} onOpenGuide={openGuide} onOpenReport={openReport} onClose={() => openSide(false)} inert={behind}
         />
       )}
-      <div className="stage" id="stage" aria-hidden="true" inert={behind} />
+      <MapStage place={place} is3d={is3d} onMap={setMap} inert={behind} />
       <div className="mapload" id="mapload" aria-hidden="true" data-done={mapLoading ? undefined : ''} />
-      <MapControls layer={layer} onLayer={toggleLayer} locating={locating} onLocate={locate} hint={hint} inert={behind}>
+      <MapControls
+        layer={layer} onLayer={toggleLayer} locating={locating} onLocate={locate} hint={hint} inert={behind}
+        map={map} is3d={is3d} onToggle3d={() => setIs3d((v) => !v)}
+      >
         {last >= 1 && (
           <TimeBar dates={dates} w={w} frame={frame} playing={playing} onPlay={play} onScrub={(k) => {
             showFrame(k)

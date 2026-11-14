@@ -1,4 +1,6 @@
 /* Changes on top of the template's styles (map.css stays a byte-for-byte copy). */
+/* MapLibre's own styles sit below the "page" layer, so the map area keeps the page's size and place */
+@import "maplibre-gl/dist/maplibre-gl.css" layer(base);
 @layer page {
   /* "Seasons in your dates" at the foot of the Your dates card: no extra room under it */
   section[data-name="Map"] .sum details.rest summary{min-height:0;padding-top:10px}
@@ -11,4 +13,11 @@
   section[data-name="Map"] .rp-ch-box .rp-ch{margin-top:0}
   /* the box's title sits on its edge, in ink */
   section[data-name="Map"] .rp-ch-box .rp-ch .cap{padding:0;font-size:15px;font-weight:600;color:var(--on)}
+  /* the 2D/3D switch on the map's button strip: its label is text, not an icon */
+  section[data-name="Map"] .rb.mode{font-size:13px;font-weight:700}
+  section[data-name="Map"] .rb.mode:disabled{color:var(--on-mute)}
+  /* the picked place's pin: a green drop with a white rim and centre; its tip (bottom centre) is the place */
+  section[data-name="Map"] .pin{width:28px;height:31px;filter:drop-shadow(0 3px 6px rgba(16,24,20,.28))}
+  section[data-name="Map"] .pin::before{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;background:var(--green);border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+  section[data-name="Map"] .pin::after{content:"";position:absolute;left:10px;top:10px;width:8px;height:8px;border-radius:50%;background:#fff}
 }

@@ -1,39 +1,74 @@
 import { Clock, MapPin, Navigation, Search } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { PLACES, SPOT_W, type Place } from '../places'
+import { newSession, placeOf, suggestPlaces, type SessionToken, type Suggestion } from '../api'
+import type { Place } from '../places'
 import type { IconType } from '../types'
 
 const MATCH_MAX = 6
+const TYPE_PAUSE_MS = 250 /* ask Google once typing pauses, not on every key */
 type Item = { n: string; k?: string; ic: IconType; go: () => void }
-
-function norm(s: string) {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
+type Status = 'idle' | 'loading' | 'error'
 
 type Props = { recent: Place[]; onGo: (p: Place) => void; onLocate: () => void }
 
-/* empty box: "Use my location" and the places chosen on this visit; typing: matching places */
+/* empty box: "Use my location" and the places chosen on this visit; typing: Google's matching places in the Philippines */
 export function PlaceSearch({ recent, onGo, onLocate }: Props) {
   const [text, setText] = useState('')
+  const [query, setQuery] = useState('') /* what the person typed; picking a place changes the box, not this */
   const [open, setOpen] = useState(false)
   const [act, setAct] = useState(-1)
+  const [found, setFound] = useState<Suggestion[]>([])
+  const [status, setStatus] = useState<Status>('idle')
   const barRef = useRef<HTMLDivElement>(null)
+  const sessionRef = useRef<SessionToken | null>(null)
+  const q = query.trim()
 
   const goTo = (p: Place) => {
     setText(p.name)
     onGo(p)
   }
-  const t = norm(text.trim())
-  const items: Item[] = !t
+  const pick = (s: Suggestion) => {
+    setText(s.name)
+    sessionRef.current = null /* picking a place ends the search session */
+    placeOf(s).then(onGo).catch((err: unknown) => {
+      console.error('Google place details failed', err)
+      setFound([])
+      setStatus('error')
+      setOpen(true)
+    })
+  }
+  const items: Item[] = !q
     ? [{ n: 'Use my location', ic: Navigation, go: onLocate }, ...recent.map((r): Item => ({ n: r.name, k: r.sub, ic: Clock, go: () => goTo(r) }))]
-    : PLACES.filter((p) => norm(p.n).includes(t))
-        .sort((a, b) => norm(a.n).indexOf(t) - norm(b.n).indexOf(t))
-        .slice(0, MATCH_MAX)
-        .map((p): Item => ({ n: p.n, k: p.k, ic: MapPin, go: () => goTo({ name: p.n, sub: p.k, lon: p.lon, lat: p.lat, w: Math.max(p.w, SPOT_W) }) }))
+    : found.slice(0, MATCH_MAX).map((s): Item => ({ n: s.name, k: s.sub, ic: MapPin, go: () => pick(s) }))
+
+  /* typing asks Google for matches once typing pauses; an answer for older text is dropped */
+  useEffect(() => {
+    if (!q) return
+    let stale = false
+    const timer = setTimeout(async () => {
+      try {
+        sessionRef.current ??= await newSession()
+        const list = await suggestPlaces(q, sessionRef.current)
+        if (stale) return
+        setFound(list)
+        setStatus('idle')
+        setAct(list.length ? 0 : -1)
+      } catch (err: unknown) {
+        if (stale) return
+        console.error('Google place search failed', err)
+        setFound([])
+        setStatus('error')
+      }
+    }, TYPE_PAUSE_MS)
+    return () => {
+      stale = true
+      clearTimeout(timer)
+    }
+  }, [q])
 
   const show = (value: string) => {
     setOpen(true)
-    setAct(norm(value.trim()) ? 0 : -1)
+    setAct(value.trim() ? 0 : -1)
   }
   const run = (it: Item) => {
     setOpen(false)
@@ -62,6 +97,9 @@ export function PlaceSearch({ recent, onGo, onLocate }: Props) {
     return () => document.removeEventListener('pointerdown', onDown)
   }, [open])
 
+  const empty = status === 'error'
+    ? 'Search isn’t working right now. Try again, or use your location.'
+    : status === 'loading' ? 'Searching…' : `No place found for “${q}”.`
   const active = open && act >= 0 && items[act] ? 'o' + act : undefined
   return (
     <div className="search" id="bar" ref={barRef} data-open={open ? '' : undefined}>
@@ -72,10 +110,15 @@ export function PlaceSearch({ recent, onGo, onLocate }: Props) {
           role="combobox" aria-label="Search a place" aria-autocomplete="list" aria-expanded={open} aria-controls="sug" aria-activedescendant={active}
           value={text}
           onChange={(e) => {
-            setText(e.target.value)
-            show(e.target.value)
+            const v = e.target.value
+            setText(v)
+            setQuery(v)
+            /* an empty box drops old matches; typed text waits for Google */
+            if (!v.trim()) setFound([])
+            setStatus(v.trim() ? 'loading' : 'idle')
+            show(v)
           }}
-          onFocus={() => show(text)}
+          onFocus={() => show(query)}
           onKeyDown={onKeyDown}
         />
       </div>
@@ -86,7 +129,7 @@ export function PlaceSearch({ recent, onGo, onLocate }: Props) {
             <span className="st"><b>{it.n}</b>{it.k && <small>{it.k}</small>}</span>
           </li>
         )) : (
-          <li className="none" role="option" aria-disabled="true">No place found for “{text.trim()}”.</li>
+          <li className="none" role="option" aria-disabled="true">{empty}</li>
         )}
       </ul>
     </div>
