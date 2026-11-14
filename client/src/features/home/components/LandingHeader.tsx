@@ -10,11 +10,13 @@ export function LandingHeader({ titleRef }: { titleRef: RefObject<HTMLHeadingEle
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuBtnRef = useRef<HTMLButtonElement>(null)
 
+  /* the browser says when the headline leaves the top of the screen, instead of checking on every scroll */
   useEffect(() => {
-    const onScroll = () => setIsPastTitle((titleRef.current?.getBoundingClientRect().bottom ?? 0) < 0)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
+    const title = titleRef.current
+    if (!title) return
+    const io = new IntersectionObserver(([e]) => setIsPastTitle(!e.isIntersecting && e.boundingClientRect.bottom < 0))
+    io.observe(title)
+    return () => io.disconnect()
   }, [titleRef])
 
   useEffect(() => {
