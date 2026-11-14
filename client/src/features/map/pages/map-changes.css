@@ -13,11 +13,30 @@
   section[data-name="Map"] .rp-ch-box .rp-ch{margin-top:0}
   /* the box's title sits on its edge, in ink */
   section[data-name="Map"] .rp-ch-box .rp-ch .cap{padding:0;font-size:15px;font-weight:600;color:var(--on)}
+  /* a weather tile shown on the map keeps its tint, without the "On map" badge */
+  section[data-name="Map"] .tile[aria-pressed="true"] .tl::after{content:none}
   /* the 2D/3D switch on the map's button strip: its label is text, not an icon */
   section[data-name="Map"] .rb.mode{font-size:13px;font-weight:700}
   section[data-name="Map"] .rb.mode:disabled{color:var(--on-mute)}
   /* the picked place's pin: a green drop with a white rim and centre; its tip (bottom centre) is the place */
   section[data-name="Map"] .pin{width:28px;height:31px;filter:drop-shadow(0 3px 6px rgba(16,24,20,.28))}
   section[data-name="Map"] .pin::before{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;background:var(--green);border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+  /* the map layer's key under the chips: month, how sure, colour bands with their lower values, the source */
+  section[data-name="Map"] .lkey{position:absolute;top:60px;left:12px;width:max-content;max-width:min(340px,calc(100% - 24px));padding:10px 12px;border-radius:14px;font-size:12px;line-height:1.4;color:var(--on)}
+  section[data-name="Map"] .lk-t{font-size:13px}
+  section[data-name="Map"] .lk-bar{display:flex;gap:2px;margin:8px 0 6px;padding:0;list-style:none}
+  section[data-name="Map"] .lk-bar li{flex:1;min-width:40px;padding-top:12px;position:relative;font-size:11px;color:var(--on-mute);font-variant-numeric:tabular-nums}
+  section[data-name="Map"] .lk-bar li::before{content:"";position:absolute;top:0;left:0;right:0;height:8px;border-radius:2px;background:var(--c)}
+  /* a band with no colour (rain when dry): an empty outlined box */
+  section[data-name="Map"] .lk-bar li[data-none]::before{box-shadow:inset 0 0 0 1px rgba(10,11,15,.22)}
+  section[data-name="Map"] .lk-s{color:var(--on-mute)}
+  section[data-name="Map"] .lk-v{margin-top:2px;font-size:13px}
+  /* the time bar's months, coloured like the map at its centre: an empty track shows through a month with no colour (rain when dry);
+     a month with no forecast (NASA's usual) is striped */
+  section[data-name="Map"] .tzones{height:8px;top:22px;background:rgba(10,11,15,.08)}
+  section[data-name="Map"] .tzones .z[data-usual]{background-image:repeating-linear-gradient(90deg,transparent 0 3px,rgba(255,255,255,.7) 3px 5px)}
+  section[data-name="Map"] .tlabels span{left:0;right:0;text-overflow:ellipsis}
+  /* over the time bar: the month has no real data (no forecast this far ahead, not measured yet); the map then shows the usual */
+  section[data-name="Map"] .nofc{max-width:100%;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;color:var(--on)}
   section[data-name="Map"] .pin::after{content:"";position:absolute;left:10px;top:10px;width:8px;height:8px;border-radius:50%;background:#fff}
 }

@@ -2,8 +2,10 @@ import { ChevronDown, ChevronUp, Cloud, Minus, Navigation, Plus, Sprout, Sun } f
 import type { MapLibreMap } from 'maplibre-gl'
 import { useEffect, useState, type ReactNode } from 'react'
 import { TbRipple } from 'react-icons/tb'
+import type { LayerView } from '../hooks/useClimateLayer'
 import { coords } from '../places'
 import type { IconType, LayerKey } from '../types'
+import { LayerLegend, NoDataBadge } from './LayerLegend'
 
 const CHIPS: [LayerKey, IconType, string][] = [['rain', Cloud, 'Rain'], ['heat', Sun, 'Heat'], ['soil', TbRipple, 'Soil'], ['plants', Sprout, 'Plants']]
 
@@ -30,12 +32,12 @@ function readView(map: MapLibreMap) {
 export type Hint = { msg: string; warn: boolean }
 type Props = {
   layer: LayerKey | null; onLayer: (l: LayerKey) => void; locating: boolean; onLocate: () => void; hint: Hint | null; inert: boolean; children: ReactNode
-  map: MapLibreMap | null; is3d: boolean; onToggle3d: () => void
+  map: MapLibreMap | null; is3d: boolean; onToggle3d: () => void; layerView: LayerView | null
 }
 
 /* on the map: layer chips top left; 2D/3D, tilt, my location and zoom bottom right; a hint for a moment;
    the time bar, the centre's coordinates and the scale bottom left. The map buttons wait for the map. */
-export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, children, map, is3d, onToggle3d }: Props) {
+export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, children, map, is3d, onToggle3d, layerView }: Props) {
   const [view, setView] = useState<ReturnType<typeof readView> | null>(null)
   const scale = view && view.kmPx > 0 ? scaleFor(view.kmPx) : null
   const tilt = (up: boolean) => map?.easeTo({ pitch: map.getPitch() + (up ? TILT_STEP : -TILT_STEP) }) /* the map keeps it within its limits */
@@ -59,6 +61,7 @@ export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, c
           </button>
         ))}
       </div>
+      {layerView && <LayerLegend view={layerView} />}
       <nav className="rail" aria-label="Map tools">
         <div className="rg">
           {/* the button names the view it switches to */}
@@ -82,6 +85,7 @@ export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, c
       </nav>
       <p className="hint glass" id="hint" aria-live="polite" hidden={!hint} data-warn={hint?.warn ? '' : undefined}>{hint?.msg}</p>
       <div className="dock">
+        {layerView && <NoDataBadge view={layerView} />}
         {children}
         <div className="foot" aria-hidden="true">
           <span className="ll num" id="ll">{view && coords(view.lon, view.lat)}</span>

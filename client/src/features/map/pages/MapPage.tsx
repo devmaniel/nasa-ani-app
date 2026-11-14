@@ -11,6 +11,7 @@ import { Sidebar } from '../components/Sidebar'
 import { TimeBar } from '../components/TimeBar'
 import { TopBar } from '../components/TopBar'
 import { DEFAULT_MONTHS, lengthEnd, spanOf, TODAY, type Dates } from '../dates'
+import { useClimateLayer } from '../hooks/useClimateLayer'
 import { useLoading } from '../hooks/useLoading'
 import { coords, SPOT_W, type Place } from '../places'
 import type { LayerKey, SideTab } from '../types'
@@ -65,6 +66,7 @@ export function MapPage() {
   const reportFrom = useRef<HTMLElement | null>(null)
   const w = spanOf(dates)
   const last = w.b - w.a
+  const layerView = useClimateLayer(map, layer, w.a + (frame ?? 0), w) /* the month on the time bar, or the first of the dates */
 
   const openSide = (open: boolean, t?: SideTab) => {
     if (t) setTab(t)
@@ -119,6 +121,8 @@ export function MapPage() {
     navigator.geolocation.getCurrentPosition((pos) => {
       setLocating(false)
       const { longitude: lon, latitude: lat } = pos.coords
+      /* exactly 0, 0 (open sea off Africa) is what a browser reports when it has no real position */
+      if (lon === 0 && lat === 0) return setHint({ msg: 'Couldn\'t find your location. Search a city or tap the map.', warn: true })
       choose({ name: 'Your location', sub: coords(lon, lat), lon, lat, w: SPOT_W }, false)
     }, (err) => {
       setLocating(false)
@@ -201,10 +205,10 @@ export function MapPage() {
       <div className="mapload" id="mapload" aria-hidden="true" data-done={mapLoading ? undefined : ''} />
       <MapControls
         layer={layer} onLayer={toggleLayer} locating={locating} onLocate={locate} hint={hint} inert={behind}
-        map={map} is3d={is3d} onToggle3d={() => setIs3d((v) => !v)}
+        map={map} is3d={is3d} onToggle3d={() => setIs3d((v) => !v)} layerView={layerView}
       >
         {last >= 1 && (
-          <TimeBar dates={dates} w={w} frame={frame} playing={playing} onPlay={play} onScrub={(k) => {
+          <TimeBar dates={dates} w={w} frame={frame} playing={playing} strip={layerView?.strip ?? null} onPlay={play} onScrub={(k) => {
             showFrame(k)
             setPlaying(false)
           }} />
