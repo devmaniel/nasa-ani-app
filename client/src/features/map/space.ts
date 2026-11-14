@@ -266,12 +266,11 @@ export function latelyLines(l: Lately): string[] {
   return lines
 }
 
-/* every lately reading as a line, the 7-day rain first and plants last (for the report) */
+/* every lately reading as a line, the 7-day rain first (for the report; plants show in its Plants column) */
 export function allLatelyLines(l: Lately): string[] {
   return [
     ...(l.rain7 ? [Math.round(l.rain7.mm) + ' mm of rain in the 7 days to ' + dayWord(l.rain7.to) + ' · NASA IMERG'] : []),
     ...latelyLines(l),
-    ...(l.green ? ['Plants: ' + greenWord(l.green.v).toLowerCase() + ' (NDVI ' + l.green.v.toFixed(2) + ') · NASA VIIRS, the 8 days to ' + dayWord(l.green.day)] : []),
   ]
 }
 

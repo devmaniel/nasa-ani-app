@@ -28,9 +28,51 @@
   section[data-name="Map"] .tile.land{--lc:var(--brown)}
   section[data-name="Map"] .tile.lately{--lc:var(--green)}
   /* the report's "Right now": the last days from space under the season row, one line each */
-  section[data-name="Map"] .rp-lately{display:grid;gap:8px;margin-top:14px;padding:0;list-style:none;font-size:13px;color:var(--on-mute)}
-  section[data-name="Map"] .rp-lately li{display:flex;gap:8px}
-  section[data-name="Map"] .rp-lately li svg.i{flex:none;margin-top:2px;color:var(--green)}
+  section[data-name="Map"] .rp-lately{margin-top:14px;padding:14px 16px;border-radius:12px;background:var(--well)}
+  section[data-name="Map"] .rp-lately-h{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--on-mute)}
+  section[data-name="Map"] .rp-lately-h svg.i{color:var(--green)}
+  section[data-name="Map"] .rp-lately ul{display:grid;gap:8px;margin-top:10px;padding:0;list-style:none;font-size:13px}
+  section[data-name="Map"] .rp-lately li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+  section[data-name="Map"] .rp-lately .src{padding:1px 7px;border-radius:999px;background:var(--on-line);font-size:11px;color:var(--on-mute);white-space:nowrap}
+  /* heat: a bar out from the usual (the middle mark), warm to the right, cool to the left */
+  section[data-name="Map"] .rp-cell .hbar{position:relative;display:block;height:6px;border-radius:3px;background:var(--well)}
+  section[data-name="Map"] .rp-cell .hbar i{position:absolute;top:0;bottom:0;left:var(--l);width:var(--w);border-radius:3px;background:var(--lc)}
+  section[data-name="Map"] .rp-cell .hbar[data-dir="cool"] i{background:#2992e3}
+  section[data-name="Map"] .rp-cell .hbar::after{content:"";position:absolute;top:-3px;bottom:-3px;left:50%;width:2px;margin-left:-1px;border-radius:1px;background:var(--ink)}
+  section[data-name="Map"] .rp-cell[data-rl="plants"] .prog i{background:var(--lc)}
+  /* right now as five tinted tiles: each reading on its own soft card in its layer's colour */
+  section[data-name="Map"] #rp-now{gap:10px;margin-top:18px;border-top:0}
+  section[data-name="Map"] #rp-now>.rp-cell{padding:16px;border:0;border-radius:16px;background:var(--lt,var(--sand-150))}
+  section[data-name="Map"] #rp-now>.rp-cell[data-rl="rain"]{--lt:var(--mist-200)}
+  section[data-name="Map"] #rp-now>.rp-cell[data-rl="heat"]{--lt:var(--peach-300)}
+  section[data-name="Map"] #rp-now>.rp-cell[data-rl="soil"]{--lt:#f7efe6}
+  section[data-name="Map"] #rp-now>.rp-cell[data-rl="plants"]{--lt:var(--seafoam-300)}
+  section[data-name="Map"] #rp-now>.rp-cell.season{--lt:var(--sand-150);box-shadow:inset 0 0 0 1px var(--on-line)}
+  section[data-name="Map"] #rp-now .tl{font-size:12px;letter-spacing:.01em}
+  section[data-name="Map"] #rp-now .tl svg.i{width:26px;height:26px;padding:5px;border-radius:999px;background:var(--milk);color:var(--lc,var(--on))}
+  section[data-name="Map"] #rp-now .tv{font-size:24px;letter-spacing:-.01em;text-wrap:balance}
+  section[data-name="Map"] #rp-now .tc{color:rgba(8,9,10,.68)}
+  section[data-name="Map"] #rp-now .prog,section[data-name="Map"] #rp-now .meter,section[data-name="Map"] #rp-now .hbar,section[data-name="Map"] #rp-now .lvl i{height:8px;border-radius:4px;background:rgba(255,255,255,.85)}
+  section[data-name="Map"] #rp-now .lvl i.on{background:var(--lc)}
+  section[data-name="Map"] #rp-now .prog i,section[data-name="Map"] #rp-now .meter i,section[data-name="Map"] #rp-now .hbar i{border-radius:4px}
+  section[data-name="Map"] #rp-now>.rp-cell.season .prog{background:var(--well)}
+  /* the last days from space: a quiet list, one reading per row, source tag at the end */
+  section[data-name="Map"] .rp-lately{margin-top:12px;padding:16px;border-radius:16px;background:var(--milk);box-shadow:inset 0 0 0 1px var(--on-line)}
+  section[data-name="Map"] .rp-lately ul{gap:0}
+  section[data-name="Map"] .rp-lately li{justify-content:space-between;padding:10px 0;border-top:1px solid var(--on-line)}
+  section[data-name="Map"] .rp-lately li:first-child{border-top:0;padding-top:4px}
+  section[data-name="Map"] .rp-lately li:last-child{padding-bottom:0}
+  section[data-name="Map"] .rp-lately .src{background:var(--sand-150);box-shadow:inset 0 0 0 1px var(--on-line)}
+  /* the notes under each value: easier line breaks, a touch more line height */
+  section[data-name="Map"] .rp-cell .tc{line-height:1.45;text-wrap:pretty}
+  section[data-name="Map"] .rp-lately li{line-height:1.45;text-wrap:pretty}
+  /* right now: five even columns whose label, value, bar and note sit on the same lines across the row */
+  @media (min-width:900px){
+    section[data-name="Map"] .rp-now{grid-template-columns:1.25fr repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,auto)}
+    section[data-name="Map"] .rp-cell{grid-row:span 4;grid-template-rows:subgrid;row-gap:10px}
+    section[data-name="Map"] .rp-cell .tc{grid-row:4}
+    section[data-name="Map"] .rp-cell>.prog,section[data-name="Map"] .rp-cell>.meter,section[data-name="Map"] .rp-cell>.lvl,section[data-name="Map"] .rp-cell>.hbar{align-self:center}
+  }
   /* a crop row's 1–5 rating, at its foot: five segments, as many lit as the rating, in its band's colour */
   section[data-name="Map"] .crh .rate{grid-column:1/-1;display:flex;align-items:center;gap:10px;color:var(--tone)}
   section[data-name="Map"] .rate-bar{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
@@ -106,8 +148,9 @@
   section[data-name="Map"] .mbtn:active{transform:scale(.94)}
   section[data-name="Map"] .mbtn .tip{position:absolute;right:calc(100% + 10px);top:50%;transform:translate(4px,-50%);padding:6px 10px;border-radius:8px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 150ms ease-out,transform 150ms ease-out}
   section[data-name="Map"] .mbtn:hover .tip,section[data-name="Map"] .mbtn:focus-visible .tip{opacity:1;transform:translate(0,-50%)}
-  /* the full report covers the map: the header gets its bar back above it */
-  section[data-name="Map"][data-rp] .top{background:var(--milk);border-bottom:1px solid var(--on-line)}
+  /* the full report covers the whole screen: no header above it */
+  section[data-name="Map"][data-rp] .top{display:none}
+  section[data-name="Map"][data-rp] .rp{top:0}
 
   /* the map, its controls and its loading shimmer fill the whole screen, panel or not */
   section[data-name="Map"] .stage,section[data-name="Map"] .mapui,section[data-name="Map"] .mapload,

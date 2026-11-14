@@ -2,13 +2,13 @@ import { BookOpen, Calendar, ChevronDown, ChevronRight, Cloud, Info, Satellite, 
 import { TbRipple } from 'react-icons/tb'
 import type { MouseEvent, ReactNode } from 'react'
 import {
-  clamp, heatWord, pct, rainWord, SOIL_WORDS, soilLevel, sum,
+  clamp, pct, SOIL_WORDS, soilLevel, sum,
 } from '../climate'
 import { BAND, band, harvestMonth, ranked, type Band, type Crop, type Fit } from '../crops'
 import { DAY_MS, M0, MON, mName, monthEnd, seasonKey, SEASON_NAME, TODAY, yearOf, type Span } from '../dates'
 import { guideOf } from '../guides'
-import { allLatelyLines, type Lately } from '../space'
-import { capFirst, hardestText, JOBS, seasonEnd, seasonStart, WORK_WORD, type Alert, type Move, type PlaceWeather, type WorkMark } from '../report'
+import { allLatelyLines, dayWord, greenWord, type Lately } from '../space'
+import { hardestText, JOBS, seasonEnd, seasonStart, WORK_WORD, type Alert, type Move, type PlaceWeather, type WorkMark } from '../report'
 import type { IconType, LayerKey } from '../types'
 import type { OpenGuide } from './CropsPanel'
 import { FIT_COLOR } from '../chartColors'
@@ -29,19 +29,50 @@ function Cell({ l, ic: Ic, label, v, children }: { l: LayerKey; ic: IconType; la
   )
 }
 
-/* right now, always today: the season and four readings in one row */
-/* "Right now" under the season row: the last days at the place, from space, one line each with its source */
+/* "Right now" under the season row: the last days at the place, from space, one line each with its source as a tag */
 export function LatelyList({ lately }: { lately: Lately | null }) {
   const lines = lately ? allLatelyLines(lately) : []
   if (!lines.length) return null
   return (
-    <ul className="rp-lately" aria-label="Lately, from space">
-      {lines.map((l) => <li key={l} className="num"><Satellite className="i" aria-hidden />{l}</li>)}
-    </ul>
+    <div className="rp-lately">
+      <p className="rp-lately-h"><Satellite className="i" aria-hidden />Last few days, from space</p>
+      <ul>
+        {lines.map((l) => {
+          const cut = l.lastIndexOf(' · ')
+          return <li key={l} className="num">{l.slice(0, cut)}<span className="src">{l.slice(cut + 3)}</span></li>
+        })}
+      </ul>
+    </div>
   )
 }
 
-export function NowRow({ pw }: { pw: PlaceWeather }) {
+/* how far the heat is from usual: a bar out from the middle, full at HEAT_SPAN degrees either way */
+const HEAT_SPAN = 3
+function HeatBar({ d }: { d: number }) {
+  const w = clamp(Math.abs(d) / HEAT_SPAN, 0, 1) * 50
+  return (
+    <span className="hbar" data-dir={d < 0 ? 'cool' : 'warm'} aria-hidden="true">
+      <i style={{ '--l': (d < 0 ? 50 - w : 50) + '%', '--w': w + '%' }} />
+    </span>
+  )
+}
+
+/* "About half the usual 345 mm": this month's rain against the usual, in plain words */
+function rainNote(r: number, u: number) {
+  const x = u > 0 ? r / u : 1
+  const w = x < 0.35 ? 'Far less than' : x < 0.65 ? 'About half' : x < 0.9 ? 'A bit less than' : x < 1.1 ? 'About' : x < 1.5 ? 'More than' : 'Far more than'
+  return w + ' the usual ' + Math.round(u) + ' mm'
+}
+/* "A little cooler than usual (25.3 °C)" */
+const HEAT_MUCH = 1
+function heatNote(t: number, usual: number) {
+  const d = t - usual
+  const w = Math.abs(d) < 0.2 ? 'About usual' : (Math.abs(d) < HEAT_MUCH ? 'A little ' : 'Much ') + (d > 0 ? 'warmer' : 'cooler') + ' than usual'
+  return w + ' (' + usual.toFixed(1) + ' °C)'
+}
+
+/* right now, always today: the season and four readings in one row */
+export function NowRow({ pw, green }: { pw: PlaceWeather; green: Lately['green'] }) {
   const k = seasonKey(M0)
   const e = seasonEnd(M0)
   const s = seasonStart(M0)
@@ -58,18 +89,28 @@ export function NowRow({ pw }: { pw: PlaceWeather }) {
         <span className="tl"><Calendar className="i" />Season</span>
         <span className="tv">{SEASON_NAME[k]}</span>
         <span className="prog" role="img" aria-label={Math.round(clamp(done, 0, 1) * 100) + '% of the season has passed'}><i style={{ '--p': pct(done) }} /></span>
-        <span className="tc num">{left}{left === 1 ? ' day' : ' days'} left · next: {SEASON_NAME[seasonKey(e + 1)].replace(' season', '')} from 1 {MON[(e + 1) % 12]}</span>
+        <span className="tc num">{SEASON_NAME[seasonKey(e + 1)]} starts 1 {MON[(e + 1) % 12]} · {left}{left === 1 ? ' day' : ' days'} left</span>
       </div>
       <Cell l="rain" ic={Cloud} label="Rain this month" v={Math.round(r) + ' mm'}>
         <Meter v={pct(r / top)} u={pct(u / top)} />
-        <span className="tc num">{capFirst(rainWord(r / u))} · usual {Math.round(u)}</span>
+        <span className="tc num">{rainNote(r, u)}</span>
       </Cell>
-      <Cell l="heat" ic={Sun} label="Heat" v={t.toFixed(1) + ' °C'}><span className="tc">{heatWord(t - usualHeat)}</span></Cell>
+      <Cell l="heat" ic={Sun} label="Heat" v={t.toFixed(1) + ' °C'}>
+        <HeatBar d={t - usualHeat} />
+        <span className="tc num">{heatNote(t, usualHeat)}</span>
+      </Cell>
       <Cell l="soil" ic={TbRipple} label="Soil" v={soil === null ? '–' : SOIL_WORDS[soil]}>
         <Level n={soil ?? 0} />
-        <span className="tc">{pw.soil?.kind === 'usual' ? 'NASA\'s usual for ' + MON[M0 % 12] : 'NASA, with the forecast rain'}</span>
+        <span className="tc">{pw.soil?.kind === 'usual' ? 'NASA\'s usual for ' + MON[M0 % 12] : 'NASA estimate, including the rain forecast'}</span>
       </Cell>
-      <Cell l="plants" ic={Sprout} label="Plants" v="On the map"><span className="tc">NASA&rsquo;s satellite picture of how green the land is</span></Cell>
+      {green ? (
+        <Cell l="plants" ic={Sprout} label="Plants" v={greenWord(green.v)}>
+          <span className="prog"><i style={{ '--p': pct(green.v) }} /></span>
+          <span className="tc num">From satellite, week to {dayWord(green.day)} · NDVI {green.v.toFixed(2)}</span>
+        </Cell>
+      ) : (
+        <Cell l="plants" ic={Sprout} label="Plants" v="On the map"><span className="tc">NASA&rsquo;s satellite picture of how green the land is</span></Cell>
+      )}
     </div>
   )
 }
