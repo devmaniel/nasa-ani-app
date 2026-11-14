@@ -3,14 +3,13 @@ import { difference } from 'polyclip-ts'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef } from 'react'
 import { cityBorder, TERRAIN_TILES, type Area } from '../api'
-import { mapStyle } from '../mapStyle'
+import { mapStyle, pinElement, STYLE_URL } from '../mapStyle'
 import { BOUNDS, type Place } from '../places'
 
 /* MapLibre looks for its worker file beside itself, which Vite moves; point it at the real file */
 setWorkerUrl(workerUrl)
 
-/* map pictures from OpenFreeMap (free, no key); hills from the free AWS elevation tiles */
-const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
+/* hills from the free AWS elevation tiles */
 const TERRAIN = { source: 'terrain', exaggeration: 1.5 }
 const TERRAIN_TILE_PX = 256
 const TERRAIN_MAX_ZOOM = 15
@@ -76,13 +75,6 @@ function showBorder(map: MapLibreMap, area: Area | null) {
   const source = map.getSource('border')
   if (!(source instanceof GeoJSONSource)) return
   source.setData(area ? { type: 'Feature', geometry: area, properties: {} } : { type: 'FeatureCollection', features: [] })
-}
-
-/* the pin's look lives in map-changes.css (.pin); its tip is the place */
-function pinElement() {
-  const el = document.createElement('div')
-  el.className = 'pin'
-  return el
 }
 
 /* 3D: a globe, tilted, with hills. 2D: a flat map seen straight down, north up, no tilting */

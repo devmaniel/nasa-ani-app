@@ -58,4 +58,7 @@
   /* over the time bar: the month has no real data (no forecast this far ahead, not measured yet); the map then shows the usual */
   section[data-name="Map"] .nofc{max-width:100%;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;color:var(--on)}
   section[data-name="Map"] .pin::after{content:"";position:absolute;left:10px;top:10px;width:8px;height:8px;border-radius:50%;background:#fff}
+  /* the report's small map: a still MapLibre view, so the box sets its own shape */
+  section[data-name="Map"] .rp-mp{position:relative;aspect-ratio:3/2;height:auto}
+  section[data-name="Map"] .rp-mp .pin{position:absolute}
 }
