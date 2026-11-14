@@ -1,11 +1,12 @@
 import { ImageSource, RasterTileSource, type MapLibreMap } from 'maplibre-gl'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { nasaTiles } from '../api'
 import {
   areaPicture, cssColor, gridKey, isLive, kindOf, loadGrid, LOOKS, pastYear, pictureFor, tileAt, tilesIn, valueAt,
   type AreaPicture, type AreaTile, type Grid, type Kind, type MapLayer, type MapPicture,
 } from '../climateLayer'
 import type { Span } from '../dates'
+import { loadFieldPicture, type FieldPicture } from '../space'
 import type { LayerKey } from '../types'
 
 const NASA_OPACITY = 0.6
@@ -16,7 +17,14 @@ const AREA_OPACITY = 0.7
 const FADE_MS = 700 /* one month fades into the next */
 const SEA_LAYER = 'water' /* the map's sea: the colours go under it, so only land is coloured */
 
-/* what the picked layer shows for a month: kind (the data's kind) is null while it loads, and always for Plants (pictures only);
+/* the newest clear field photo, drawn solid: its source line carries the satellite and the cloud */
+const fieldsPicture = (f: FieldPicture): MapPicture => ({
+  id: f.id, level: f.level, sharp: f.level, time: f.day, opacity: 1, source: f.name + ' · ' + Math.round(f.cloud) + '% cloud · NASA HLS',
+})
+/* the field photo is looked up for the map centre rounded to this many decimals (about 11 km); one photo covers about 110 km */
+const FIELDS_DP = 1
+
+/* what the picked layer shows for a month: kind (the data's kind) is null while it loads, and always for Plants and Fields (pictures only);
    live: it's this month; picture: NASA's picture on the map, if any; value: the value at the map centre;
    limited: zoomed out too far for all the land in view to be coloured; strip: every month of the dates at the map centre, for the time bar */
 export type LayerView = {
@@ -46,7 +54,7 @@ function showNasa(map: MapLibreMap, pic: MapPicture | null) {
     const src = map.getSource(want)
     if (!src) {
       map.addSource(want, { type: 'raster', tiles: [url], tileSize: NASA_TILE_PX, maxzoom: pic.sharp, attribution: 'NASA GIBS' })
-      map.addLayer({ id: want, type: 'raster', source: want, paint: { 'raster-opacity': NASA_OPACITY } }, beforeId(map))
+      map.addLayer({ id: want, type: 'raster', source: want, paint: { 'raster-opacity': pic.opacity ?? NASA_OPACITY } }, beforeId(map))
     } else if (src instanceof RasterTileSource && src.tiles[0] !== url) src.setTiles([url])
   }
   for (const l of map.getStyle().layers) {
@@ -86,9 +94,12 @@ function hideArea(map: MapLibreMap, was: Painted): Painted {
 /* the picked layer for a month: rain, heat and soil colour the land in view (fading from month to month), with the value at the
    map centre for the key; NASA's picture on the map where there is one */
 export function useClimateLayer(map: MapLibreMap | null, layer: LayerKey | null, month: number, span: Span): LayerView | null {
-  const shown: MapLayer | null = layer === 'plants' ? null : layer
+  const shown: MapLayer | null = layer === 'plants' || layer === 'fields' ? null : layer
   const [view, setView] = useState<View | null>(null)
   const [grids, setGrids] = useState<Record<string, Grid | null>>({})
+  /* the last field photo found (kept while the next one is looked up, so moving the map doesn't blink); failed: that search failed */
+  const [fields, setFields] = useState<{ key: string; pic: FieldPicture | null; failed: boolean } | null>(null)
+  const fieldsKey = layer === 'fields' && view ? view.lon.toFixed(FIELDS_DP) + ',' + view.lat.toFixed(FIELDS_DP) : ''
   const painted = useRef<Painted>({ front: 'b', key: '', layer: null })
   const year = pastYear(month)
   const inView = view ? tilesIn(view) : null
@@ -101,8 +112,12 @@ export function useClimateLayer(map: MapLibreMap | null, layer: LayerKey | null,
   const grid = centreKey ? grids[centreKey] : undefined
   const kind = shown && grid ? kindOf(shown, month, grid) : null
   const live = isLive(month)
-  /* NASA's pictures are blocky over the smooth colours, so only Plants (which has no numbers to colour) shows one */
-  const picture = layer === 'plants' ? pictureFor(layer, month) : null
+  /* NASA's pictures are blocky over the smooth colours, so only Plants and Fields (which have no numbers to colour) show one */
+  const fieldPic = fields?.pic ?? null
+  const picture = useMemo(
+    () => (layer === 'plants' ? pictureFor(layer, month) : layer === 'fields' && fieldPic ? fieldsPicture(fieldPic) : null),
+    [layer, month, fieldPic],
+  )
   const value = shown && grid && kind && view ? valueAt(shown, kind, month, grid, view.lon, view.lat) : null
 
   /* follow the map: its centre and the area in view */
@@ -167,12 +182,32 @@ export function useClimateLayer(map: MapLibreMap | null, layer: LayerKey | null,
     if (key !== was.key) painted.current = paintArea(map, was, key, shown, areaPicture(shown, month, tiles, ready))
   }, [map, shown, kind, month, year, grids, tilesKey])
 
+  /* Fields: the newest clear photo over the map centre */
   useEffect(() => {
-    if (map) showNasa(map, layer === 'plants' ? pictureFor(layer, month) : null)
-  }, [map, layer, month])
+    if (!fieldsKey) return
+    const [lon, lat] = fieldsKey.split(',').map(Number)
+    let live = true
+    loadFieldPicture({ lon, lat }).then((pic) => {
+      if (live) setFields({ key: fieldsKey, pic, failed: false })
+    }).catch((err: unknown) => {
+      console.error('NASA field photo search failed', err)
+      if (live) setFields({ key: fieldsKey, pic: null, failed: true })
+    })
+    return () => {
+      live = false
+    }
+  }, [fieldsKey])
+
+  useEffect(() => {
+    if (map) showNasa(map, picture)
+  }, [map, picture])
 
   const limited = inView?.limited ?? false
   if (layer === 'plants') return { layer, month, kind: null, live, picture, value: null, limited, strip: null, status: 'ready' }
+  if (layer === 'fields') {
+    const status = !fields || fields.key !== fieldsKey ? 'loading' : fields.failed ? 'error' : 'ready'
+    return { layer, month, kind: null, live, picture, value: null, limited, strip: null, status }
+  }
   if (!shown) return null
   const cells = months.map((m): StripCell => {
     const g = centreTile ? grids[gridKey(shown, centreTile, pastYear(m))] : undefined

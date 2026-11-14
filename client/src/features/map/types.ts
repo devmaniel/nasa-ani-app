@@ -6,7 +6,7 @@ export type IconType = ComponentType<{ className?: string; 'aria-hidden'?: boole
 /* The colour pairs used by icon tiles (data-tone in the styles) */
 export type Tone = 'soil' | 'grow' | 'water' | 'feed' | 'pest' | 'harvest' | 'none'
 
-export type LayerKey = 'rain' | 'heat' | 'soil' | 'plants'
+export type LayerKey = 'rain' | 'heat' | 'soil' | 'humid' | 'sun' | 'plants' | 'fields'
 export type SideTab = 'weather' | 'crops'
 
 /* Lets style={{ '--v': '40%' }} pass the CSS variables the copied styles read */

@@ -1,5 +1,5 @@
 import { LOOKS, type Kind, type MapLayer, type MapPicture } from '../climateLayer'
-import { M0, mName, MONTH_FULL } from '../dates'
+import { fmtY, M0, mName, MONTH_FULL, parseIso } from '../dates'
 import type { LayerView } from '../hooks/useClimateLayer'
 
 const KIND_WORD: Record<Kind, (m: number) => string> = {
@@ -19,11 +19,15 @@ const BAND: Record<MapLayer, (v: number) => string> = {
   rain: String,
   heat: String,
   soil: (v) => Math.round(v * 100) + '%',
+  humid: (v) => v + '%',
+  sun: String,
 }
 const VALUE: Record<MapLayer, (v: number) => string> = {
   rain: (v) => Math.round(v) + ' mm',
   heat: (v) => v.toFixed(1) + '°C',
   soil: (v) => Math.round(v * 100) + '% wet',
+  humid: (v) => Math.round(v) + '% humidity',
+  sun: (v) => v.toFixed(1) + ' MJ/m² a day',
 }
 
 /* which NASA picture is on the map: the latest, or the month's own */
@@ -34,6 +38,7 @@ const pictureWord = (p: MapPicture, m: number) => (p.time === 'default' ? 'the l
 export function LayerLegend({ view }: { view: LayerView }) {
   const { layer, kind, month, live, value, picture } = view
   if (layer === 'plants') return <PlantsKey month={month} picture={picture} />
+  if (layer === 'fields') return <FieldsKey view={view} />
   const look = LOOKS[layer]
   return (
     <div className="lkey glass" role="status">
@@ -59,6 +64,7 @@ export function LayerLegend({ view }: { view: LayerView }) {
    or no plant picture; the colours then show NASA's usual for the month */
 export function NoDataBadge({ view }: { view: LayerView }) {
   const { layer, month, kind, picture } = view
+  if (layer === 'fields') return null
   const usualWord = 'showing the usual ' + MONTH_FULL[month % 12]
   const text = layer === 'plants'
     ? picture ? null : month > M0 ? 'No forecast for plants' : 'No plant picture for ' + mName(month)
@@ -81,6 +87,23 @@ function PlantsKey({ month, picture }: { month: number; picture: MapPicture | nu
             ? 'NASA only has satellite views of what already happened. Move the time bar back to Today, or pick past dates.'
             : "NASA's monthly plant pictures run from July 2002 to about two months ago."}
       </p>
+    </div>
+  )
+}
+
+/* Fields: the newest clear photo of the fields over the map centre (Sentinel-2 or Landsat, as NASA's HLS); it doesn't follow the time bar */
+function FieldsKey({ view }: { view: LayerView }) {
+  const { picture, status } = view
+  const day = picture ? parseIso(picture.time) : null
+  return (
+    <div className="lkey glass" role="status">
+      <p className="lk-t">
+        <b>Fields</b> · {day ? 'Newest clear photo, ' + fmtY(day)
+          : status === 'loading' ? 'Finding the newest clear photo…'
+          : status === 'error' ? "Couldn't reach NASA's search. Move the map to try again."
+          : 'No clear photo of this area yet'}
+      </p>
+      {picture && <p className="lk-s">{picture.source} · Zoom in to see single fields; the time bar doesn&rsquo;t change it.</p>}
     </div>
   )
 }

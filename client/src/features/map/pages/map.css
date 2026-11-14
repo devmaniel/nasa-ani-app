@@ -29,7 +29,7 @@ section[data-name="Map"] h1,section[data-name="Map"] h2,section[data-name="Map"]
 section[data-name="Map"] p{margin:0;text-wrap:pretty}
 section[data-name="Map"] ul,section[data-name="Map"] ol{margin:0;padding:0;list-style:none}
 section[data-name="Map"] [hidden]{display:none!important}
-section[data-name="Map"] :focus-visible{outline:2px solid var(--on);outline-offset:2px;border-radius:8px}
+section[data-name="Map"] :focus-visible{outline:none}
 section[data-name="Map"] .num{font-variant-numeric:tabular-nums}
 section[data-name="Map"] svg.i{width:16px;height:16px;flex:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;fill:none}
 section[data-name="Map"] .glass{background:var(--glass);border:1px solid var(--glass-line);box-shadow:var(--shadow);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
@@ -97,7 +97,6 @@ section[data-name="Map"] .stage,section[data-name="Map"] .mapui{position:fixed;t
 section[data-name="Map"][data-sb] .stage,section[data-name="Map"][data-sb] .mapui{right:calc(var(--rl) + var(--sw))}
 section[data-name="Map"] .stage{overflow:hidden;background:var(--sea);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
 section[data-name="Map"] .stage[data-drag]{cursor:grabbing}
-section[data-name="Map"] .stage:focus-visible{outline:2px solid var(--on);outline-offset:-2px;border-radius:0}
 section[data-name="Map"] .stage canvas{position:absolute;inset:0;width:100%;height:100%}
 section[data-name="Map"] .ov{position:absolute;inset:0;width:100%;height:100%;max-width:none;pointer-events:none;overflow:visible}
 section[data-name="Map"] .ov text{font-family:var(--sans);font-size:12px;font-weight:600;fill:var(--on);paint-order:stroke;stroke:rgba(255,255,255,.92);stroke-width:3px;stroke-linejoin:round}

@@ -1,24 +1,23 @@
 import { ChevronRight } from 'lucide-react'
 import type { MouseEvent } from 'react'
-import { BAND, band, countOf, CROPS, planText, ranked, regionBands, regionsLine, type Band, type CropWeather, type Fit } from '../crops'
+import { BAND, band, countOf, CROPS, LAND_TAG, landBand, ranked, regionBands, regionsLine, type Band, type CropWeather, type Fit } from '../crops'
 import type { Span } from '../dates'
 import { REGIONS, type Place } from '../places'
 import { FIT_COLOR } from '../chartColors'
 import { HalfDonut } from './HalfDonut'
-import { LessSureTag } from './Parts'
 
 export type CropFilter = Band | 'all'
 export type OpenGuide = (crop: string, from: HTMLElement) => void
 
 function CropRow({ r, showFit, onOpen }: { r: Fit; showFit: boolean; onOpen: OpenGuide }) {
   const bd = band(r.score)
+  const lb = landBand(r.land) /* FAO GAEZ: how well the land suits the crop */
   return (
     <li className={bd}>
       <button className="crh" type="button" data-guide={r.c.n} aria-haspopup="dialog" onClick={(e: MouseEvent<HTMLButtonElement>) => onOpen(r.c.n, e.currentTarget)}>
-        <span className="cn"><b>{r.c.n}</b> <small>{r.c.l}</small></span>
+        <span className="cn"><b>{r.c.n}</b> <small>{r.c.l}</small>{lb && <span className={'tag land ' + lb}>{LAND_TAG[lb]}</span>}</span>
         {showFit && <span className={'fit ' + bd}>{BAND[bd]}</span>}
         <ChevronRight className="i" />
-        <span className="when num">{planText(r)}<LessSureTag m={r.pm} /></span>
       </button>
     </li>
   )

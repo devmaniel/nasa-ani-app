@@ -1,9 +1,11 @@
-import { Calendar, ChevronDown, ChevronRight, Info, MapPin } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronRight, Info, LandPlot, MapPin, Mountain } from 'lucide-react'
 import type { RefObject } from 'react'
 import { BAND, band } from '../crops'
 import {
   DEFAULT_MONTHS, fmtY, isDefaultDates, lengthWord, M0, MONTH_FULL, seasonKey, seasonsIn, SEASON_NAME, yearOf, type Dates, type Span,
 } from '../dates'
+import { landLine, type Land } from '../land'
+import { groundLine, treesLine, type Ground } from '../space'
 import type { Place } from '../places'
 import { monthLabel, monthsText, type Alert, type Move } from '../report'
 import { Sk } from './Parts'
@@ -69,6 +71,9 @@ type Props = {
   dates: Dates
   w: Span
   loading: boolean
+  land: Land | null
+  /* the exact spot, from NASA SRTM and GEDI; null while it loads */
+  ground: Ground | null
   moves: Move[]
   alerts: Alert[]
   headingRef: RefObject<HTMLHeadingElement | null>
@@ -76,9 +81,10 @@ type Props = {
   onGoMoves: () => void
 }
 
-/* the head: the way back, the place, its address, the dates and the season bar; the short answer under it */
-export function ReportHead({ place, dates, w, loading, moves, alerts, headingRef, onBack, onGoMoves }: Props) {
+/* the head: the way back, the place, its address and land, the dates and the season bar; the short answer under it */
+export function ReportHead({ place, dates, w, loading, land, ground, moves, alerts, headingRef, onBack, onGoMoves }: Props) {
   const one = w.a === w.b
+  const landWords = land ? landLine(land) : ''
   return (
     <div className="rp-wrap">
       <div className="rp-head">
@@ -89,6 +95,12 @@ export function ReportHead({ place, dates, w, loading, moves, alerts, headingRef
           </p>
           <h1 id="rp-place" tabIndex={-1} ref={headingRef}>{place.name}</h1>
           <p className="rp-addr" id="rp-addr"><MapPin className="i" /><span>{addressOf(place)}</span></p>
+          {landWords && <p className="rp-addr" id="rp-land"><Mountain className="i" /><span>{landWords} · FAO GAEZ, about 25 km around</span></p>}
+          {ground && (
+            <p className="rp-addr" id="rp-spot">
+              <LandPlot className="i" /><span>{groundLine(ground)} · NASA SRTM{treesLine(ground) ? '. ' + treesLine(ground) + ' · NASA GEDI' : ''}</span>
+            </p>
+          )}
           <p className="rp-when" id="rp-when">
             <Calendar className="i" />
             <b>{isDefaultDates(dates) ? 'Next ' + DEFAULT_MONTHS + ' months' : lengthWord(dates)}</b>

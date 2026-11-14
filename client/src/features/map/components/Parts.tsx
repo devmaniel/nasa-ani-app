@@ -1,5 +1,5 @@
 import { harvestMonth, type Fit } from '../crops'
-import { isLessSure, mName, type Span } from '../dates'
+import { mName, type Span } from '../dates'
 import type { IconType } from '../types'
 
 export type Chip = [IconType, string]
@@ -11,11 +11,6 @@ export function Sk({ w, h }: { w: string; h: number }) {
 
 export function LoadingStatus() {
   return <p className="sr" role="status">Loading</p>
-}
-
-/* months more than a year ahead are an outlook */
-export function LessSureTag({ m }: { m: number }) {
-  return isLessSure(m) ? <span className="tag">Less sure</span> : null
 }
 
 /* three bars, lit up to level n (0–2) */

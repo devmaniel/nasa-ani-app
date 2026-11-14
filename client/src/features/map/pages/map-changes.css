@@ -13,6 +13,25 @@
   section[data-name="Map"] .rp-ch-box .rp-ch{margin-top:0}
   /* the box's title sits on its edge, in ink */
   section[data-name="Map"] .rp-ch-box .rp-ch .cap{padding:0;font-size:15px;font-weight:600;color:var(--on)}
+  /* the Lately (from space), Land and Air & sun tiles: full width under the four weather tiles;
+     they have no map layer, so they don't react to the pointer */
+  section[data-name="Map"] .tile.static{min-height:0;margin-top:8px}
+  section[data-name="Map"] .tile.static:hover{background:var(--milk)}
+  section[data-name="Map"] .tile.static:active{transform:none}
+  /* the Humidity and Sun map layers' colours (chips, colour key) */
+  section[data-name="Map"] [data-layer="humid"]{--lc:#2f9aa6;--lt:var(--seafoam-300)}
+  section[data-name="Map"] [data-layer="sun"]{--lc:#e09a00;--lt:#fdf0c4}
+  /* the Fields map photo (Landsat, Sentinel-2) */
+  section[data-name="Map"] [data-layer="fields"]{--lc:#5b7a3a;--lt:#e3ecd6}
+  section[data-name="Map"] .tile.land{--lc:var(--brown)}
+  section[data-name="Map"] .tile.air{--lc:var(--rain)}
+  section[data-name="Map"] .tile.lately{--lc:var(--green)}
+  /* the report's "Right now": the last days from space under the season row, one line each */
+  section[data-name="Map"] .rp-lately{display:grid;gap:8px;margin-top:14px;padding:0;list-style:none;font-size:13px;color:var(--on-mute)}
+  section[data-name="Map"] .rp-lately li{display:flex;gap:8px}
+  section[data-name="Map"] .rp-lately li svg.i{flex:none;margin-top:2px;color:var(--green)}
+  /* the land tag on a crop row, tinted by how well the land suits the crop */
+  section[data-name="Map"] .tag.land{display:block;width:max-content;margin:4px 0 0;color:var(--tone);background:color-mix(in srgb,var(--tone) 12%,transparent)}
   /* a weather tile shown on the map keeps its tint, without the "On map" badge */
   section[data-name="Map"] .tile[aria-pressed="true"] .tl::after{content:none}
   /* the 2D/3D switch on the map's button strip: its label is text, not an icon */

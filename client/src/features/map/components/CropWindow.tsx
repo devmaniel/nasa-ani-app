@@ -1,12 +1,14 @@
 import { Calendar, Info, MapPin, Sprout, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BAND, band, bestPlant, countOf, cropMonths, CROPS, cropWhy, harvestMonth, planText, readyIn, regionBands, regionsLine, type Band, type Crop, type CropWeather, type Fit } from '../crops'
+import { BAND, band, bestPlant, countOf, cropMonths, CROPS, cropWhy, harvestMonth, landText, readyIn, slopeText, regionBands, regionsLine, type Band, type Crop, type CropWeather, type Fit } from '../crops'
 import { spanOf, type Dates, type Span } from '../dates'
 import { GD_TOPIC_ICON, GD_TOPICS, guideOf } from '../guides'
+import { useSpace } from '../hooks/useSpace'
 import { cropWeather, useWeather } from '../hooks/useWeather'
+import { GAEZ_CROP, SLOPE_FROM } from '../land'
 import { REGIONS, type Place } from '../places'
 import type { IconType, Tone } from '../types'
-import { Axis, CalendarKey, Chips, Gantt, LessSureTag, LoadingStatus, Sk, type Chip } from './Parts'
+import { Axis, CalendarKey, Chips, Gantt, LoadingStatus, Sk, type Chip } from './Parts'
 
 const CAL_MIN_MONTHS = 6
 /* px below the top of the topics where a heading counts as being read */
@@ -18,15 +20,18 @@ function SecIcon({ ic: [Ic, tone] }: { ic: Sec['ic'] }) {
 }
 
 /* "When to plant" for a place: its calendar from the dates' start to the harvest, then why and how long */
-function PlanPlace({ r, w }: { r: Fit; w: Span }) {
+function PlanPlace({ r, w, slope }: { r: Fit; w: Span; slope: number | null }) {
   const a = w.a
   const b = Math.max(a + CAL_MIN_MONTHS - 1, harvestMonth(r))
+  const ground = slopeText(r.c, slope)
   return (
     <>
       <Axis a={a} b={b} className="cax" />
       <Gantt r={r} w={w} a={a} b={b} />
       <CalendarKey />
       <p>{cropWhy(r)}</p>
+      <p>{landText(r) ?? (GAEZ_CROP[r.c.n] ? 'No land rating here from FAO.' : 'FAO has no land rating for ' + r.c.n.toLowerCase() + '.')}</p>
+      {ground && <p>{ground}</p>}
       <p>{readyIn(r.c)}</p>
     </>
   )
@@ -45,14 +50,14 @@ function PlanCountry({ c, bands }: { c: Crop; bands: Band[] }) {
   )
 }
 
-function contentFor(wx: CropWeather, c: Crop, place: Place | null, w: Span) {
+/* slope: the ground's slope at the place (%), null without one */
+function contentFor(wx: CropWeather, c: Crop, place: Place | null, w: Span, slope: number | null) {
   if (place) {
     const r = bestPlant(wx, place, c, w.a, w.b)
     const bd = band(r.score)
     return {
-      when: <>{planText(r)}<LessSureTag m={r.pm} /></>,
       chips: [[MapPin, BAND[bd] + ' · ' + place.name]] satisfies Chip[],
-      plan: <div className={'gm-plan ' + bd}><PlanPlace r={r} w={w} /></div>,
+      plan: <div className={'gm-plan ' + bd}><PlanPlace r={r} w={w} slope={slope} /></div>,
     }
   }
   const bands = regionBands(wx, c, w)
@@ -75,6 +80,7 @@ export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Pr
   const w = spanOf(dates)
   /* the same NASA and forecast data as the map and the sidebar */
   const wx = useWeather(place ? [place] : REGIONS, cropMonths(w))
+  const { ground } = useSpace(place)
   const loading = waiting || wx.status === 'loading'
 
   useEffect(() => {
@@ -83,7 +89,10 @@ export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Pr
   if (!c) return null
 
   const steps = guideOf(c.n)
-  const content = contentFor(cropWeather(wx), c, place, w)
+  /* the slope: NASA SRTM's at the exact spot, else the low end of FAO GAEZ's class around the place */
+  const cls = place ? wx.land(place)?.slope ?? null : null
+  const slope = ground ? ground.slope : cls !== null && Number.isFinite(SLOPE_FROM[cls]) ? SLOPE_FROM[cls] : null
+  const content = contentFor(cropWeather(wx), c, place, w, slope)
   const plan: Sec = { t: 'When to plant', ic: [Calendar, 'grow'], body: wx.status === 'error' ? <p role="alert">Couldn&rsquo;t load NASA&rsquo;s numbers. Check the connection, then open the crop again.</p> : content.plan }
   const topics = steps ? GD_TOPICS.map((t, j): Sec => ({ t, ic: GD_TOPIC_ICON[t], n: steps[j].length, body: <ol>{steps[j].map((x) => <li key={x}>{x}</li>)}</ol> })) : []
   const secs: Sec[] = [plan, ...topics]
@@ -125,7 +134,7 @@ export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Pr
           <span className="ic" data-tone="grow"><Sprout className="i" /></span>
           <div className="tx">
             <div className="tl"><h2 id="gm-t">{c.n} <small>{c.l}</small></h2><span className="gd-tag">Sample</span></div>
-            <p className="gm-when num" id="gm-when">{content.when}</p>
+            {content.when && <p className="gm-when num" id="gm-when">{content.when}</p>}
             <p className="gd-meta" id="gm-meta"><Chips chips={content.chips} /></p>
           </div>
           <button className="x" type="button" id="gm-x" aria-label="Close" title="Close" onClick={onClose}><X className="i" /></button>
@@ -163,7 +172,7 @@ export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Pr
             )}
           </div>
         </div>
-        <p className="gm-foot"><Info className="i" />When to plant: NASA weather and FAO ECOCROP crop needs. Growing guides are sample content, not from an agricultural source.</p>
+        <p className="gm-foot"><Info className="i" />When to plant: NASA weather, FAO ECOCROP crop needs, FAO GAEZ land suitability and the NASA SRTM slope. Growing guides are sample content, not from an agricultural source.</p>
       </div>
     </>
   )

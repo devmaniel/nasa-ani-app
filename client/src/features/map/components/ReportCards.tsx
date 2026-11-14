@@ -1,12 +1,13 @@
-import { BookOpen, Calendar, ChevronDown, ChevronRight, Cloud, Info, ShoppingBasket, Sprout, Sun } from 'lucide-react'
+import { BookOpen, Calendar, ChevronDown, ChevronRight, Cloud, Info, Satellite, ShoppingBasket, Sprout, Sun } from 'lucide-react'
 import { TbRipple } from 'react-icons/tb'
 import type { MouseEvent, ReactNode } from 'react'
 import {
   clamp, heatWord, pct, rainWord, SOIL_WORDS, soilLevel, sum,
 } from '../climate'
-import { BAND, band, harvestMonth, planText, ranked, type Band, type Crop, type Fit } from '../crops'
+import { BAND, band, harvestMonth, ranked, type Band, type Crop, type Fit } from '../crops'
 import { DAY_MS, M0, MON, mName, monthEnd, seasonKey, SEASON_NAME, TODAY, yearOf, type Span } from '../dates'
 import { guideOf } from '../guides'
+import { allLatelyLines, type Lately } from '../space'
 import { capFirst, hardestText, JOBS, seasonEnd, seasonStart, WORK_WORD, type Alert, type Move, type PlaceWeather, type WorkMark } from '../report'
 import type { IconType, LayerKey } from '../types'
 import type { OpenGuide } from './CropsPanel'
@@ -29,6 +30,17 @@ function Cell({ l, ic: Ic, label, v, children }: { l: LayerKey; ic: IconType; la
 }
 
 /* right now, always today: the season and four readings in one row */
+/* "Right now" under the season row: the last days at the place, from space, one line each with its source */
+export function LatelyList({ lately }: { lately: Lately | null }) {
+  const lines = lately ? allLatelyLines(lately) : []
+  if (!lines.length) return null
+  return (
+    <ul className="rp-lately" aria-label="Lately, from space">
+      {lines.map((l) => <li key={l} className="num"><Satellite className="i" aria-hidden />{l}</li>)}
+    </ul>
+  )
+}
+
 export function NowRow({ pw }: { pw: PlaceWeather }) {
   const k = seasonKey(M0)
   const e = seasonEnd(M0)
@@ -121,7 +133,6 @@ export function CropGroups({ pw, w, onOpen }: { pw: PlaceWeather; w: Span; onOpe
         <span className="cn"><b>{r.c.n}</b><small>{r.c.l}</small></span>
         <span className="fit">{BAND[bd]}</span>
         <Gantt r={r} w={w} a={a} b={b} />
-        <span className="when num">{planText(r)}</span>
         <span className="why num">{hardestText(r)}</span>
         {bd !== 'poor' && guideOf(r.c.n) && (
           <button className="rp-gl" type="button" data-guide={r.c.n} aria-haspopup="dialog" onClick={openFrom(onOpen, r.c.n)}>

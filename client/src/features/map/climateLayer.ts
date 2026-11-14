@@ -9,16 +9,24 @@ import type { LayerKey } from './types'
    this month and the next → the free Open-Meteo forecast, as far as it reaches (about 6 months), laid over NASA's detailed usual
    later months            → NASA POWER's usual for that month (25-year average): no forecast, so the map says so
    Soil has no forecast: its forecast months are NASA's usual soil, nudged by the forecast rain.
+   Humidity and Sun have no forecast either: now and ahead they show NASA's usual for the month.
    The map also shows NASA's satellite picture (GIBS): the latest this month, and for past months the month's own where NASA makes one. */
 
-export type MapLayer = Exclude<LayerKey, 'plants'>
+/* the layers that colour the land with numbers; Plants and Fields are NASA pictures only */
+export type MapLayer = Exclude<LayerKey, 'plants' | 'fields'>
 export type Kind = 'past' | 'forecast' | 'usual' | 'estimate'
 /* past: NASA's measured values for one year; no points when that request failed (its months fall back to the usual) */
 export type Grid = { usual: GridPoint[]; rain: GridPoint[] | null; forecast: Forecast | null; past: { year: number; points: GridPoint[] } | null }
+/* the layers the Open-Meteo forecast covers (soil through the forecast rain) */
+const FORECAST_LAYERS: ReadonlySet<MapLayer> = new Set(['rain', 'heat', 'soil'])
+/* NASA POWER gives sunlight on a coarser grid, a spot every SUN_STEP°; it's spread onto the fine grid before drawing */
+const SUN_STEP = 1
 
+/* sharp: the zoom NASA's tiles are taken at; lower is smoother; opacity: how solid it's drawn (see-through by default) */
+type NasaPicture = { id: string; level: number; sharp: number; source: string; opacity?: number }
 type Look = {
   name: string
-  nasa: { id: string; level: number; sharp: number; source: string } /* sharp: the zoom NASA's tiles are taken at; lower is smoother */
+  nasa?: NasaPicture
   usual: UsualParam
   unit: string
   bands: [number, string | null][] /* from this value up, this colour; null: no colour (the map shows through, fading in towards the next band) */
@@ -38,15 +46,25 @@ export const LOOKS: Record<MapLayer, Look> = {
     name: 'Soil', nasa: { id: 'SMAP_L4_Analyzed_Root_Zone_Soil_Moisture', level: 6, sharp: 4, source: 'NASA SMAP' }, usual: 'GWETROOT', unit: 'root-zone wetness, 0% dry to 100% soaked',
     bands: [[0, '#8a4510'], [0.3, '#c47a26'], [0.5, '#e8b85a'], [0.65, '#6fd0a4'], [0.8, '#22a585'], [0.9, '#08665c']],
   },
+  /* coloured by fungus risk: pale under 75%, then deeper, darkest from 85% where leaf fungus and rot spread easily */
+  humid: {
+    name: 'Humidity', usual: 'RH2M', unit: '% humidity in the air, fungus spreads from 85%',
+    bands: [[0, '#f3ead2'], [65, '#d5ecdf'], [75, '#8fd0c4'], [85, '#2f9aa6'], [90, '#1d4f91']],
+  },
+  /* grey when cloudy, warming to deep yellow in full sun */
+  sun: {
+    name: 'Sun', usual: 'ALLSKY_SFC_SW_DWN', unit: 'MJ of sunlight per m² a day',
+    bands: [[0, '#b7bec8'], [13, '#e4e6d8'], [16, '#fbe7a1'], [19, '#f9c74f'], [22, '#f3a712']],
+  },
 }
-/* NASA's latest picture for every chip; Plants has only pictures (nobody forecasts plant greenness, and NASA POWER has no numbers for it) */
-const NASA_PICTURES: Record<LayerKey, Look['nasa']> = {
+/* NASA's latest picture for the chips that have one; Plants has only pictures (nobody forecasts plant greenness, and NASA POWER has no numbers for it) */
+const NASA_PICTURES: Partial<Record<LayerKey, NasaPicture>> = {
   rain: LOOKS.rain.nasa, heat: LOOKS.heat.nasa, soil: LOOKS.soil.nasa,
   plants: { id: 'MODIS_Terra_NDVI_8Day', level: 9, sharp: 9, source: 'NASA MODIS, plant greenness (NDVI)' },
 }
 /* NASA's picture of a whole past month, where it makes one, from month `from` on: Heat since March 2000, Plants since July 2002
    (rain and soil pictures only go back about a year, as daily ones, so past months show their numbers only) */
-const NASA_MONTHLY: Partial<Record<LayerKey, Look['nasa'] & { from: number }>> = {
+const NASA_MONTHLY: Partial<Record<LayerKey, NasaPicture & { from: number }>> = {
   heat: { id: 'MODIS_Terra_L3_Land_Surface_Temp_Monthly_Day', level: 6, sharp: 6, source: 'NASA MODIS, ground surface, month average', from: 2000 * 12 + 2 },
   plants: { id: 'MODIS_Aqua_L3_NDVI_Monthly', level: 7, sharp: 7, source: 'NASA MODIS, plant greenness for the month', from: 2002 * 12 + 6 },
 }
@@ -54,9 +72,10 @@ const NASA_MONTHLY: Partial<Record<LayerKey, Look['nasa'] & { from: number }>> =
 const MONTHLY_LAG = 2
 
 /* the picture on the map; time: 'default' for the latest, or the month's first day */
-export type MapPicture = Look['nasa'] & { time: string }
+export type MapPicture = NasaPicture & { time: string }
 export function pictureFor(layer: LayerKey, m: number): MapPicture | null {
-  if (m === M0) return { ...NASA_PICTURES[layer], time: 'default' }
+  const latest = NASA_PICTURES[layer]
+  if (m === M0) return latest ? { ...latest, time: 'default' } : null
   const p = NASA_MONTHLY[layer]
   if (!p || m < p.from || m > M0 - MONTHLY_LAG) return null
   return { id: p.id, level: p.level, sharp: p.sharp, source: p.source, time: iso(new Date(yearOf(m), m % 12, 1)) }
@@ -137,20 +156,32 @@ function once<T>(saved: Map<string, Promise<T>>, key: string, load: () => Promis
   return p
 }
 
+/* sunlight's coarse spots spread onto the tile's fine grid: each fine spot takes its nearest coarse spot's months */
+function spreadSun(points: GridPoint[], tile: string): GridPoint[] {
+  const { x, y } = tileXY(tile)
+  return range(0, TILE_COLS - 1).flatMap((i) => range(0, TILE_ROWS - 1).flatMap((j) => {
+    const lon = x + i * STEP_LON
+    const lat = y + j * STEP_LAT
+    const near = points.reduce<GridPoint | null>((best, p) => (!best || Math.hypot(p.lon - lon, p.lat - lat) < Math.hypot(best.lon - lon, best.lat - lat) ? p : best), null)
+    return near && Math.hypot(near.lon - lon, near.lat - lat) <= SUN_STEP * 1.5 ? [{ lon, lat, months: near.months }] : []
+  }))
+}
+
 /* everything one layer needs for a tile; year: the past year to measure (null for now and ahead);
    without the forecast or the past, those months fall back to NASA's usual */
 export async function loadGrid(layer: MapLayer, tile: string, year: number | null): Promise<Grid> {
   const param = LOOKS[layer].usual
+  const fine = (points: GridPoint[]) => (layer === 'sun' ? spreadSun(points, tile) : points)
   const usualOf = (p: UsualParam) => once(savedUsual, p + ':' + tile, () => usualGrid(p, tileBox(tile)))
   const [usual, rain, forecast, past] = await Promise.all([
-    usualOf(param),
+    usualOf(param).then(fine),
     layer === 'soil' ? usualOf('PRECTOTCORR') : null,
-    once(savedForecast, tile, () => forecastFor(forecastSpots(tile))).catch((err: unknown) => {
+    !FORECAST_LAYERS.has(layer) ? null : once(savedForecast, tile, () => forecastFor(forecastSpots(tile))).catch((err: unknown) => {
       console.error('Forecast failed; later months show NASA usual', err)
       return null
     }),
     year === null ? null : once(savedPast, param + ':' + tile + ':' + year, () => pastGrid(param, tileBox(tile), year))
-      .then((points) => ({ year, points }))
+      .then((points) => ({ year, points: fine(points) }))
       .catch((err: unknown) => {
         console.error('NASA POWER past months failed; they show NASA usual', err)
         return { year, points: [] }
