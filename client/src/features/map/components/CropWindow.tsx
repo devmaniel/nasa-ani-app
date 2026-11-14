@@ -1,13 +1,16 @@
 import { Calendar, Info, MapPin, Sprout, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BAND, band, bestPlant, countOf, CROPS, cropWhy, harvestMonth, planText, readyIn, regionBands, regionsLine, type Band, type Crop, type Fit } from '../crops'
+import { BAND, band, bestPlant, countOf, cropMonths, CROPS, cropWhy, harvestMonth, planText, readyIn, regionBands, regionsLine, type Band, type Crop, type CropWeather, type Fit } from '../crops'
 import { spanOf, type Dates, type Span } from '../dates'
 import { GD_TOPIC_ICON, GD_TOPICS, guideOf } from '../guides'
+import { cropWeather, useWeather } from '../hooks/useWeather'
 import { REGIONS, type Place } from '../places'
 import type { IconType, Tone } from '../types'
 import { Axis, CalendarKey, Chips, Gantt, LessSureTag, LoadingStatus, Sk, type Chip } from './Parts'
 
 const CAL_MIN_MONTHS = 6
+/* px below the top of the topics where a heading counts as being read */
+const SPY_TOP = 40
 type Sec = { t: string; ic: [IconType, Tone]; n?: number; body: ReactNode }
 
 function SecIcon({ ic: [Ic, tone] }: { ic: Sec['ic'] }) {
@@ -42,9 +45,9 @@ function PlanCountry({ c, bands }: { c: Crop; bands: Band[] }) {
   )
 }
 
-function contentFor(c: Crop, place: Place | null, w: Span) {
+function contentFor(wx: CropWeather, c: Crop, place: Place | null, w: Span) {
   if (place) {
-    const r = bestPlant(place, c, w.a, w.b)
+    const r = bestPlant(wx, place, c, w.a, w.b)
     const bd = band(r.score)
     return {
       when: <>{planText(r)}<LessSureTag m={r.pm} /></>,
@@ -52,7 +55,7 @@ function contentFor(c: Crop, place: Place | null, w: Span) {
       plan: <div className={'gm-plan ' + bd}><PlanPlace r={r} w={w} /></div>,
     }
   }
-  const bands = regionBands(c, w)
+  const bands = regionBands(wx, c, w)
   return {
     when: <>{regionsLine(countOf(bands, 'good'), countOf(bands, 'fair'))}</>,
     chips: [[MapPin, 'Whole country']] satisfies Chip[],
@@ -63,11 +66,16 @@ function contentFor(c: Crop, place: Place | null, w: Span) {
 type Props = { crop: string; place: Place | null; dates: Dates; loading: boolean; onClose: () => void }
 
 /* the crop window: "When to plant", then the crop's growing guide when it has one; topics on the left */
-export function CropWindow({ crop, place, dates, loading, onClose }: Props) {
+export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Props) {
   const gmRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const [current, setCurrent] = useState(0)
+  const clickedRef = useRef(false)
   const c = CROPS.find((x) => x.n === crop)
+  const w = spanOf(dates)
+  /* the same NASA and forecast data as the map and the sidebar */
+  const wx = useWeather(place ? [place] : REGIONS, cropMonths(w))
+  const loading = waiting || wx.status === 'loading'
 
   useEffect(() => {
     gmRef.current?.focus()
@@ -75,28 +83,34 @@ export function CropWindow({ crop, place, dates, loading, onClose }: Props) {
   if (!c) return null
 
   const steps = guideOf(c.n)
-  const content = contentFor(c, place, spanOf(dates))
-  const plan: Sec = { t: 'When to plant', ic: [Calendar, 'grow'], body: content.plan }
+  const content = contentFor(cropWeather(wx), c, place, w)
+  const plan: Sec = { t: 'When to plant', ic: [Calendar, 'grow'], body: wx.status === 'error' ? <p role="alert">Couldn&rsquo;t load NASA&rsquo;s numbers. Check the connection, then open the crop again.</p> : content.plan }
   const topics = steps ? GD_TOPICS.map((t, j): Sec => ({ t, ic: GD_TOPIC_ICON[t], n: steps[j].length, body: <ol>{steps[j].map((x) => <li key={x}>{x}</li>)}</ol> })) : []
   const secs: Sec[] = [plan, ...topics]
-  /* the topic being read is marked in the list */
+  /* the topic being read is marked in the list: the last one whose heading has passed the reading line.
+     The line sits near the top, and over the last screen of scrolling it slides to the bottom, so the short last topics get their turn */
   const spy = () => {
     const body = bodyRef.current
-    if (!body) return
-    const line = body.getBoundingClientRect().top + 40
-    const all = Array.from(body.querySelectorAll('.gm-sec'))
+    if (!body || clickedRef.current) return
+    const left = body.scrollHeight - body.clientHeight - body.scrollTop
+    const line = body.getBoundingClientRect().top + SPY_TOP + (body.clientHeight - SPY_TOP) * Math.max(0, 1 - left / body.clientHeight)
     let on = 0
-    all.forEach((sec, j) => {
+    body.querySelectorAll('.gm-sec').forEach((sec, j) => {
       if (sec.getBoundingClientRect().top <= line) on = j
     })
-    if (body.scrollHeight > body.clientHeight && body.scrollTop + body.clientHeight >= body.scrollHeight - 2) on = all.length - 1
     setCurrent(on)
+  }
+  /* a clicked topic stays marked until the person scrolls themselves */
+  const release = () => {
+    clickedRef.current = false
   }
   const goTopic = (j: number) => {
     const body = bodyRef.current
     const sec = document.getElementById('gm-s-' + j)
     const h = document.getElementById('gm-h-' + j)
     if (!body || !sec || !h) return
+    clickedRef.current = true
+    setCurrent(j)
     body.scrollTop = sec.offsetTop - 8
     h.setAttribute('tabindex', '-1')
     h.focus({ preventScroll: true })
@@ -127,7 +141,7 @@ export function CropWindow({ crop, place, dates, loading, onClose }: Props) {
               </a>
             ))}
           </nav>
-          <div className="gm-body" id="gm-body" ref={bodyRef} aria-busy={loading || undefined} onScroll={spy}>
+          <div className="gm-body" id="gm-body" ref={bodyRef} aria-busy={loading || undefined} onScroll={spy} onWheel={release} onTouchStart={release} onPointerDown={release} onKeyDown={release}>
             {loading ? (
               <>
                 <LoadingStatus />
@@ -149,7 +163,7 @@ export function CropWindow({ crop, place, dates, loading, onClose }: Props) {
             )}
           </div>
         </div>
-        <p className="gm-foot"><Info className="i" />Sample content, not from an agricultural source. Real guides replace it later.</p>
+        <p className="gm-foot"><Info className="i" />When to plant: NASA weather and FAO ECOCROP crop needs. Growing guides are sample content, not from an agricultural source.</p>
       </div>
     </>
   )

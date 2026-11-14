@@ -7,7 +7,7 @@ import {
 import { BAND, band, harvestMonth, planText, ranked, type Band, type Crop, type Fit } from '../crops'
 import { DAY_MS, M0, MON, mName, monthEnd, seasonKey, SEASON_NAME, TODAY, yearOf, type Span } from '../dates'
 import { guideOf } from '../guides'
-import { capFirst, hardestText, JOBS, seasonEnd, seasonStart, WORK_WORD, type Alert, type Move, type WorkMark } from '../report'
+import { capFirst, hardestText, JOBS, SAMPLE_WEATHER, seasonEnd, seasonStart, WORK_WORD, type Alert, type Move, type WorkMark } from '../report'
 import type { IconType, LayerKey } from '../types'
 import type { OpenGuide } from './CropsPanel'
 import { FIT_COLOR } from '../chartColors'
@@ -111,7 +111,7 @@ export function MoveList({ moves, onOpen }: { moves: Move[]; onOpen: OpenGuide }
 
 /* what to plant: every crop, good ones first, each on the same calendar */
 export function CropGroups({ p, w, onOpen }: { p: Point; w: Span; onOpen: OpenGuide }) {
-  const all = ranked(p, w)
+  const all = ranked(SAMPLE_WEATHER, p, w)
   const a = w.a
   const b = Math.max(a + CAL_MIN_MONTHS - 1, Math.max(...all.map(harvestMonth)))
   const row = (r: Fit) => {

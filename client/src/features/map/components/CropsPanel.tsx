@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react'
 import type { MouseEvent } from 'react'
-import { BAND, band, countOf, CROPS, planText, ranked, regionBands, regionsLine, type Band, type Fit } from '../crops'
+import { BAND, band, countOf, CROPS, planText, ranked, regionBands, regionsLine, type Band, type CropWeather, type Fit } from '../crops'
 import type { Span } from '../dates'
 import { REGIONS, type Place } from '../places'
 import { FIT_COLOR } from '../chartColors'
@@ -25,8 +25,8 @@ function CropRow({ r, showFit, onOpen }: { r: Fit; showFit: boolean; onOpen: Ope
 }
 
 /* one place: a filter, then one short row per crop; a row opens the crop's window */
-export function PlaceCrops({ place, w, filter, onFilter, onOpen }: { place: Place; w: Span; filter: CropFilter | null; onFilter: (f: CropFilter) => void; onOpen: OpenGuide }) {
-  const all = ranked(place, w)
+export function PlaceCrops({ place, wx, w, filter, onFilter, onOpen }: { place: Place; wx: CropWeather; w: Span; filter: CropFilter | null; onFilter: (f: CropFilter) => void; onOpen: OpenGuide }) {
+  const all = ranked(wx, place, w)
   const n: Record<Band, number> = { good: 0, fair: 0, poor: 0 }
   all.forEach((r) => {
     n[band(r.score)]++
@@ -60,9 +60,9 @@ export function PlaceCrops({ place, w, filter, onFilter, onOpen }: { place: Plac
 }
 
 /* the whole country: each crop with one dot per region */
-export function CountryCrops({ w, onOpen }: { w: Span; onOpen: OpenGuide }) {
+export function CountryCrops({ wx, w, onOpen }: { wx: CropWeather; w: Span; onOpen: OpenGuide }) {
   const rows = CROPS.map((c) => {
-    const bands = regionBands(c, w)
+    const bands = regionBands(wx, c, w)
     return { c, bands, good: countOf(bands, 'good'), fair: countOf(bands, 'fair') }
   }).sort((x, y) => y.good - x.good || y.fair - x.fair)
   return (

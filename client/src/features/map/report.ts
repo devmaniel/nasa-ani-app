@@ -1,7 +1,7 @@
 /* The full report's numbers: the chosen place and the map's dates (from _archive/full-report-2026-11-05) */
 import { Bug, Clock, Cloud, Droplet, Shovel, Sprout, Sun } from 'lucide-react'
 import { rainAt, sum, tempAt, usualRain, usualTemp, waterAt, type Point } from './climate'
-import { band, cropFit, CROPS, GOOD, ISSUE, planText, ranked, type Fit } from './crops'
+import { band, cropFit, CROPS, GOOD, ISSUE, planText, ranked, type CropWeather, type Fit } from './crops'
 import { isLessSure, LESS_SURE_AFTER, M0, MON, MONTH_FULL, mName, seasonKey, yearOf, type Span } from './dates'
 import type { IconType, Tone } from './types'
 
@@ -9,6 +9,8 @@ const RP_DRY = 0.85
 const RP_WET = 1.15
 export const RP_VERY_DRY_MM = 50
 const RP_WARM_C = 0.5
+/* the report is still on the sample climate: its crops are scored on it too */
+export const SAMPLE_WEATHER: CropWeather = { rain: rainAt, heat: tempAt }
 
 export function seasonEnd(m: number) {
   const k = seasonKey(m)
@@ -81,7 +83,7 @@ export function alertsFor(p: Point, w: Span) {
 /* the best moves: the old Adapt headlines, for a place and dates instead of a farm */
 export type Move = { t: string; d: string; r?: Fit }
 export function movesFor(p: Point, w: Span) {
-  const all = ranked(p, w)
+  const all = ranked(SAMPLE_WEATHER, p, w)
   const top = all[0]
   const out: Move[] = []
   const n = w.b - w.a + 1
@@ -104,7 +106,7 @@ export function movesFor(p: Point, w: Span) {
 
 /* a crop's hardest month, in the report's words */
 export function hardestText(r: Fit) {
-  const word: Record<Fit['worst']['why'], string> = { hot: 'too hot', dry: 'too dry', wet: 'too wet' }
+  const word: Record<Fit['worst']['why'], string> = { hot: 'too hot', cold: 'too cool', dry: 'too dry', wet: 'too wet' }
   return r.worst.f >= ISSUE ? 'Rain and heat suit it from planting to harvest.' : 'Hardest month: ' + mName(r.worst.m) + ', ' + word[r.worst.why] + ' for it.'
 }
 
@@ -123,7 +125,7 @@ export type WorkMark = 'good' | 'ok' | 'no'
 export const WORK_WORD: Record<WorkMark, string> = { good: 'Good', ok: 'Possible', no: 'Not a good month' }
 export const JOBS: { n: string; ic: IconType; at: (p: Point, m: number) => WorkMark }[] = [
   { n: 'Plant', ic: Sprout, at: (p, m) => {
-    const k = CROPS.filter((c) => cropFit(p, c, m).score >= GOOD).length
+    const k = CROPS.filter((c) => cropFit(SAMPLE_WEATHER, p, c, m).score >= GOOD).length
     return k >= 4 ? 'good' : k >= 1 ? 'ok' : 'no'
   } },
   { n: 'Prepare the land', ic: Shovel, at: (p, m) => {
