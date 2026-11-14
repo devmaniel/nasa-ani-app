@@ -11,6 +11,7 @@ import type { OpenGuide } from './CropsPanel'
 import { AlertList, CropGroups, Figures, LatelyList, MoveList, NowRow, PlantingMonths, WorkTable } from './ReportCards'
 import { ReportChart, ReportMonths } from './ReportChart'
 import { ReportHead } from './ReportHead'
+import { ReportMap } from './ReportMap'
 
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const SECTIONS = [
@@ -128,8 +129,7 @@ export function FullReport({ open, place, dates, loading: waiting, onBack, onSho
             </div>
             <aside className="rp-rail" aria-label="The place on the map, and about this report">
               <section className="rp-card rp-mapc" aria-label="On the map">
-                {/* the small map drawing is deferred with the map; its box stays */}
-                <svg className="rp-mp" id="rp-mp" viewBox="0 0 300 200" role="img" aria-label={'Map around ' + place.name} />
+                <ReportMap place={place} />
                 <div className="foot">
                   <p className="rp-mleg num" id="rp-mleg"><span>Rain a month, your dates</span><span>{data.range ? Math.round(data.range[0]) : '–'}</span><i className="lg" /><span>{data.range ? Math.round(data.range[1]) : '–'} mm</span></p>
                   <p className="ll num" id="rp-ll">{coords(place.lon, place.lat)}</p>

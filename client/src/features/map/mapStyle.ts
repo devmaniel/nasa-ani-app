@@ -88,3 +88,13 @@ function recolorLayer(l: Layer): Layer {
 }
 
 export const mapStyle: TransformStyleFunction = (_previous, next) => ({ ...next, layers: next.layers.map(recolorLayer) })
+
+/* map pictures from OpenFreeMap (free, no key) */
+export const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
+
+/* the pin's look lives in map-changes.css (.pin); its tip is the place */
+export function pinElement() {
+  const el = document.createElement('div')
+  el.className = 'pin'
+  return el
+}
