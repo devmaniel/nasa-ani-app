@@ -1,7 +1,7 @@
 /* Map page styles, copied from artifacts/master-template-v2.html (section[data-name="Map"]). */
 /* In the "page" layer (see src/index.css) so shadcn parts used inside the map keep their own look. */
 @layer page {
-section[data-name="Map"] .brand{display:block;aspect-ratio:433/180;background:url(../assets/logo.png) center/contain no-repeat}
+section[data-name="Map"] .brand{display:block;aspect-ratio:433/180;background:url(../../../shared/assets/logo.png) center/contain no-repeat}
 section[data-name="Map"] .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---- design tokens (snapshot of the master's :root) ---- */
