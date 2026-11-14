@@ -1,6 +1,6 @@
 import type { Point } from './climate'
 
-/* A place picked on this visit. w: how far in to fly when it's picked again (kept for the map, later) */
+/* A place picked on this visit. w: how many degrees wide the map shows when it flies there */
 export type Place = Point & { name: string; sub: string; w: number }
 /* A place the search can find */
 export type SearchPlace = Point & { n: string; k: 'Region' | 'Province' | 'City'; w: number }
@@ -42,5 +42,5 @@ export const BOUNDS = { w: 116, e: 127.5, s: 4.5, n: 21.5 }
 export const SPOT_W = 0.6
 
 export function coords(lon: number, lat: number) {
-  return lat.toFixed(2) + '° N · ' + lon.toFixed(2) + '° E'
+  return Math.abs(lat).toFixed(2) + (lat < 0 ? '° S · ' : '° N · ') + Math.abs(lon).toFixed(2) + (lon < 0 ? '° W' : '° E')
 }
