@@ -112,6 +112,20 @@
   section[data-name="Map"] .lk-bar li[data-none]::before{box-shadow:inset 0 0 0 1px rgba(10,11,15,.22)}
   section[data-name="Map"] .lk-s{color:var(--on-mute)}
   section[data-name="Map"] .lk-v{margin-top:2px;font-size:13px}
+  /* phones and tablets (up to 1279 px): the key folds to one short line (layer and centre value); tapping it opens the rest */
+  section[data-name="Map"] .lk-tog{display:none}
+  /* the map's overlay (.mapui) lets taps through to the map; the key's button has to take them back */
+  section[data-name="Map"] .lk-tog{pointer-events:auto}
+  @media (max-width:1279px){
+    section[data-name="Map"] .lkey{padding:0}
+    section[data-name="Map"] .lk-tog{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:8px 12px;font:inherit;font-size:13px;color:inherit;text-align:left;background:none;border:0;border-radius:inherit;cursor:pointer}
+    section[data-name="Map"] .lk-tog svg{flex:none;width:16px;height:16px;margin-left:auto;color:var(--on-mute);transition:transform 150ms ease-out}
+    section[data-name="Map"] .lkey[data-open] .lk-tog svg{transform:rotate(180deg)}
+    section[data-name="Map"] .lkey:not([data-open]) .lk-body{display:none}
+    section[data-name="Map"] .lk-body{padding:0 12px 10px}
+    /* the value is already in the folded line */
+    section[data-name="Map"] .lk-body .lk-v{display:none}
+  }
   /* the time bar's months, coloured like the map at its centre: an empty track shows through a month with no colour (rain when dry);
      a month with no forecast (NASA's usual) is striped */
   section[data-name="Map"] .tzones{height:8px;top:22px;background:rgba(10,11,15,.08)}
@@ -123,6 +137,19 @@
   /* the report's small map: a still MapLibre view, so the box sets its own shape */
   section[data-name="Map"] .rp-mp{position:relative;aspect-ratio:3/2;height:auto}
   section[data-name="Map"] .rp-mp .pin{position:absolute}
+  /* tablets (up to 1279 px): the report keeps one column, so its cards aren't squeezed by a side column;
+     the small map and "About this report" sit side by side under them */
+  @media (min-width:1024px) and (max-width:1279px){
+    section[data-name="Map"] .rp-layout{grid-template-columns:minmax(0,1fr)}
+    section[data-name="Map"] .rp-rail{position:static}
+  }
+  @media (min-width:768px) and (max-width:1279px){
+    section[data-name="Map"] .rp-rail{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+  }
+  /* the report never pans sideways: a card may not grow wider than the screen (the farm-work table, one column a month,
+     and the charts used to stretch theirs), so the table scrolls inside its own box instead */
+  section[data-name="Map"] .rp-card{min-width:0}
+  section[data-name="Map"] .rp{overflow-x:hidden}
 
   /* ---- map first: the map always fills the screen; the header floats on it and the panel slides over it ---- */
   section[data-name="Map"]{--rl:0px;--slide:280ms cubic-bezier(.22,.8,.24,1);--frost-ink:rgba(8,9,10,.72);--frost:rgba(255,255,255,.78);--frost-line:rgba(10,11,15,.1);--frost-shadow:0 4px 16px rgba(16,24,20,.14)}
@@ -148,6 +175,8 @@
   section[data-name="Map"] .mbtn[aria-pressed="true"]{color:var(--green)}
   section[data-name="Map"] .mbtn:active{transform:scale(.94)}
   section[data-name="Map"] .mbtn .tip{position:absolute;right:calc(100% + 10px);top:50%;transform:translate(4px,-50%);padding:6px 10px;border-radius:8px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 150ms ease-out,transform 150ms ease-out}
+  /* a Messenger-style count on the Crops button: how many crops the panel lists */
+  section[data-name="Map"] .mbtn .badge{position:absolute;top:-4px;right:-4px;width:22px;height:22px;padding:0;display:grid;place-items:center;border-radius:999px;background:var(--poor-tone);color:#fff;border:2px solid #fff;font-size:11px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;pointer-events:none}
   section[data-name="Map"] .mbtn:hover .tip,section[data-name="Map"] .mbtn:focus-visible .tip{opacity:1;transform:translate(0,-50%)}
   /* the full report covers the whole screen: no header above it */
   section[data-name="Map"][data-rp] .top{display:none}
@@ -173,7 +202,8 @@
   @keyframes sb-slide-in{from{transform:translateX(calc(100% + 32px))}to{transform:none}}
   @keyframes sb-slide-out{from{transform:none}to{transform:translateX(calc(100% + 32px))}}
   /* its head: Crops or Weather, the place's name small beside it on the same line; ⓘ on the right opens the sources */
-  section[data-name="Map"] .sb-h{gap:8px;padding:16px var(--sb-in);align-items:center}
+  /* over the dates card, so the Sources box (ⓘ) opens on top of it */
+  section[data-name="Map"] .sb-h{position:relative;z-index:4;gap:8px;padding:16px var(--sb-in);align-items:center}
   section[data-name="Map"] .sb-hd{display:flex;align-items:baseline;gap:8px}
   section[data-name="Map"] .sb-hd .k{min-width:0;margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   section[data-name="Map"] .srcs{position:relative;flex:none}
@@ -184,6 +214,62 @@
   section[data-name="Map"] .srcs-p b{display:block;margin-bottom:4px;color:var(--on)}
   section[data-name="Map"] .srcs-p{max-height:60vh;overflow:auto}
   section[data-name="Map"] .srcs-ph{display:block;margin-top:8px}
+
+  /* the dates under the panel's head, on both tabs: a card with the dates and their seasons as a thin strip; it opens a card over the panel */
+  section[data-name="Map"] .dbar{flex:none;position:relative;z-index:3;padding:12px var(--sb-in) 14px;border-bottom:1px solid var(--on-line)}
+  section[data-name="Map"] .dsum{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px 12px;padding:12px 14px 12px 12px;border-radius:14px;border:1px solid var(--on-line);background:var(--sand-150);text-align:left;transition-property:background-color,border-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+  section[data-name="Map"] .dsum:hover{background:var(--sand-50)}
+  section[data-name="Map"] .dsum:active{transform:scale(.99)}
+  section[data-name="Map"] .dsum[aria-expanded="true"]{border-color:color-mix(in srgb,var(--green) 45%,transparent);background:var(--milk)}
+  section[data-name="Map"] .dsum>svg.i{width:36px;height:36px;padding:9px;border-radius:10px;background:var(--milk);color:var(--green);box-shadow:inset 0 0 0 1px var(--on-line)}
+  section[data-name="Map"] .dsum-t{display:grid;gap:1px}
+  section[data-name="Map"] .dsum-t b,section[data-name="Map"] .dsum-t span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  section[data-name="Map"] .dsum-t b{font-size:15px;font-weight:700}
+  section[data-name="Map"] .dsum-t span{font-size:12px;color:var(--on-mute)}
+  section[data-name="Map"] .dsum-c{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:var(--green)}
+  section[data-name="Map"] .dsum-c svg.i{width:16px;height:16px;transition:transform 150ms ease-out}
+  section[data-name="Map"] .dsum[aria-expanded="true"] .dsum-c svg.i{transform:rotate(180deg)}
+  section[data-name="Map"] .dstrip{grid-column:1/-1;display:flex;gap:2px;height:6px}
+  section[data-name="Map"] .dstrip i{flex-basis:0;border-radius:3px;background:var(--sc)}
+
+  /* the open dates: a card over the panel, seasons first, then lengths, then the person's own dates */
+  section[data-name="Map"] .dpop{position:absolute;top:calc(100% - 6px);left:var(--sb-in);right:var(--sb-in);display:grid;gap:10px;padding:16px;border-radius:16px;background:var(--milk);border:1px solid var(--on-line);box-shadow:var(--shadow);animation:pn-in 160ms ease-out;max-height:calc(100dvh - 220px);overflow:auto;overscroll-behavior:contain}
+  section[data-name="Map"] .dpop-h{font-family:var(--serif);font-size:20px;line-height:1.15}
+  section[data-name="Map"] .dpop-s{margin-top:-6px;font-size:12px;color:var(--on-mute)}
+  /* the seasons: one list, a row each, split by thin lines; the picked one tinted green with a tick */
+  section[data-name="Map"] .dopts{display:grid;border:1px solid var(--on-line);border-radius:14px;overflow:hidden}
+  section[data-name="Map"] .dopt{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 14px 10px 10px;border-top:1px solid var(--on-line);text-align:left;transition:background-color 150ms ease-out}
+  section[data-name="Map"] .dopt:first-child{border-top:0}
+  section[data-name="Map"] .dopt:hover{background:var(--sand-150)}
+  section[data-name="Map"] .dopt:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+  section[data-name="Map"] .dopt[aria-pressed="true"]{background:color-mix(in srgb,var(--green) 8%,var(--milk))}
+  /* the season's icon on a tile tinted by its weather */
+  section[data-name="Map"] .dsw{flex:none;width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:color-mix(in srgb,var(--sc) 40%,var(--milk));color:var(--on)}
+  section[data-name="Map"] .dsw svg.i{width:18px;height:18px}
+  section[data-name="Map"] .dopt-t{flex:1;min-width:0;display:grid;gap:2px}
+  section[data-name="Map"] .dopt-t b{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
+  section[data-name="Map"] .dopt-t small{font-size:12px;color:var(--on-mute)}
+  section[data-name="Map"] .dnow{padding:1px 7px;border-radius:999px;background:var(--green);color:#fff;font-size:11px;font-weight:700;line-height:1.5}
+  section[data-name="Map"] .dopt>svg.i{flex:none;width:20px;height:20px;color:var(--green)}
+  /* "Advanced": a soft box under the seasons; its head opens the From and To boxes inside it */
+  section[data-name="Map"] .dadv-box{border-radius:14px;background:var(--sand-150)}
+  section[data-name="Map"] .dadv{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;padding:10px 14px;border-radius:14px;text-align:left}
+  section[data-name="Map"] .dadv:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+  section[data-name="Map"] .dadv-t{display:grid;gap:1px}
+  section[data-name="Map"] .dadv-t b{font-size:13px;font-weight:700;color:var(--on)}
+  section[data-name="Map"] .dadv-t small{font-size:12px;color:var(--on-mute)}
+  section[data-name="Map"] .dadv svg.i{flex:none;width:18px;height:18px;color:var(--on-mute);transition:transform 150ms ease-out}
+  section[data-name="Map"] .dadv[aria-expanded="true"] svg.i{transform:rotate(180deg)}
+  section[data-name="Map"] .dpop .adv{margin:0;padding:0 14px 14px}
+  section[data-name="Map"] .dpop .adv[hidden]{display:none}
+  section[data-name="Map"] .dpop-f{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px;padding-top:12px;border-top:1px solid var(--on-line)}
+  section[data-name="Map"] .dhint{font-size:12px;line-height:1.35;color:var(--on-mute)}
+  section[data-name="Map"] .ddone{flex:none;height:36px;padding:0 18px;border-radius:999px;background:var(--ink);color:#fff;font-size:13px;font-weight:700;transition:transform 150ms ease-out}
+  section[data-name="Map"] .ddone:active{transform:scale(.96)}
+  /* which month the crops are rated for, over the groups */
+  section[data-name="Map"] .crfor{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:8px 12px;border-radius:10px;background:var(--sand-150);font-size:12px;color:var(--on-mute)}
+  section[data-name="Map"] .crfor svg.i{flex:none;width:16px;height:16px;color:var(--green)}
+  section[data-name="Map"] .crfor b{color:var(--on)}
 
   /* more months, on demand, under the rain chart */
   section[data-name="Map"] .more{justify-self:start;display:inline-flex;align-items:center;height:32px;margin-top:10px;padding:0 14px;border-radius:999px;border:1px solid var(--on-line);font-size:12px;font-weight:600;transition:background-color 150ms ease-out}
@@ -208,10 +294,113 @@
   @media (max-width:720px){
     section[data-name="Map"] .top{right:0;padding-right:calc(44px + var(--gap) * 2)}
     section[data-name="Map"] .search{flex:1;width:auto;min-width:0}
+    /* the logo leaves the header to the search and the buttons: a smaller pill on the map's bottom left */
+    section[data-name="Map"] .mbrand{position:fixed;left:var(--gap);bottom:var(--gap);height:36px;padding:0 12px}
+    section[data-name="Map"] .mbrand .brand{height:20px}
+    /* the layer chips, the time bar and the scale sit just above the logo pill (36 px), not under it */
+    section[data-name="Map"] .dock{bottom:calc(var(--gap) + 44px)}
+    /* the colour key ends left of the Crops and Weather buttons (44 px), not under them */
+    section[data-name="Map"] .lkey{max-width:calc(100% - var(--gap) * 3 - 44px)}
     section[data-name="Map"] .sb{z-index:20;inset:0;width:auto;height:auto;max-height:none;border:0;border-radius:0;box-shadow:none}
+    /* the full report opens over the full-screen panel, not under it */
+    section[data-name="Map"] .rp{z-index:21}
     section[data-name="Map"][data-sb] .rail{right:var(--gap)}
     section[data-name="Map"][data-sb] .tabsf{right:var(--gap)}
     section[data-name="Map"] .mbtn .tip{display:none}
     section[data-name="Map"][data-sb] .maplibregl-ctrl-bottom-right{right:0}
+  }
+  /* the time bar starts hidden: a "Timeline" chip opens it, the chevron at its end hides it again */
+  section[data-name="Map"] .topen{pointer-events:auto}
+  section[data-name="Map"] .tbar{grid-template-columns:40px minmax(0,1fr) auto auto}
+  section[data-name="Map"] .tclose{width:32px;height:32px;display:grid;place-items:center;border-radius:999px;color:var(--on-mute);transition-property:background-color,color;transition-duration:150ms;transition-timing-function:ease-out}
+  section[data-name="Map"] .tclose:hover{background:var(--milk);color:var(--ink)}
+  section[data-name="Map"] .tclose svg.i{width:18px;height:18px}
+  /* the layer chips start hidden too: a "Layers" chip opens them, a round chevron chip at the end hides them */
+  section[data-name="Map"] .chip.cicon{width:40px;padding:0;justify-content:center}
+  /* "When to plant", kept simple: the date first and big, then the verdict and harvest, then one sentence on the weather; the rest under "Learn more" */
+  section[data-name="Map"] .wtp{--wt:var(--tone,var(--good-tone));display:grid;gap:16px;color:var(--on)}
+  section[data-name="Map"] .wtp-cal{display:grid;gap:6px}
+  section[data-name="Map"] .gm-plan .wtp-cal .cleg{margin:2px 0 0}
+  section[data-name="Map"] .wtp-k{font-size:13px;font-weight:600;color:var(--on-mute)}
+  section[data-name="Map"] .wtp-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 16px}
+  section[data-name="Map"] .wtp-h{font-size:24px;font-weight:500;line-height:1.2;letter-spacing:-.01em;color:var(--on);text-wrap:balance}
+  section[data-name="Map"] .gm-plan .wtp-h b{font-weight:700;color:var(--wt)}
+  section[data-name="Map"] .wtp-sub{margin-top:4px;font-size:13px;font-weight:500;color:var(--on-mute)}
+  section[data-name="Map"] .wtp-badge{flex:none;padding:5px 12px;border-radius:999px;background:color-mix(in srgb,var(--wt) 13%,transparent);color:var(--wt);font-size:12px;font-weight:700}
+  section[data-name="Map"] .wtp-why{max-width:60ch;margin-top:4px;font-size:14px;line-height:1.55;color:var(--on);text-wrap:pretty}
+  section[data-name="Map"] .wtp-lead{max-width:62ch;font-size:15px;line-height:1.55;color:var(--on);text-wrap:pretty}
+  /* the checks: an icon tinted by how it went (green fine, amber watch, red a problem), the label, the verdict, then why */
+  section[data-name="Map"] .wtp-checks{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+  section[data-name="Map"] .gm-sec .wtp-check{--cs:var(--good-tone);display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;align-items:start;padding:8px 0;counter-increment:none}
+  section[data-name="Map"] .gm-sec .wtp-check::before{content:none}
+  section[data-name="Map"] .wtp-check[data-s="watch"]{--cs:var(--fair-tone)}
+  section[data-name="Map"] .wtp-check[data-s="bad"]{--cs:var(--poor-tone)}
+  section[data-name="Map"] .wtp-ci{width:32px;height:32px;display:grid;place-items:center;color:var(--cs)}
+  section[data-name="Map"] .wtp-ci svg.i{width:18px;height:18px}
+  section[data-name="Map"] .wtp-ct{display:grid;grid-template-columns:60px minmax(0,1fr);gap:2px 10px;align-items:baseline;padding-top:6px}
+  section[data-name="Map"] .wtp-cl{font-size:12px;font-weight:600;color:var(--on-mute)}
+  section[data-name="Map"] .gm-plan .wtp-ct b{font-size:14px;font-weight:700;color:var(--cs)}
+  section[data-name="Map"] .wtp-cd{grid-column:2;font-size:13px;line-height:1.45;color:var(--on-mute)}
+  @media (max-width:720px){
+    section[data-name="Map"] .wtp-ct{grid-template-columns:minmax(0,1fr)}
+    section[data-name="Map"] .wtp-cd{grid-column:1}
+  }
+  section[data-name="Map"] .wtp-more{margin-top:8px}
+  section[data-name="Map"] .wtp-more summary{display:inline-flex;align-items:center;gap:6px;min-height:40px;font-size:14px;font-weight:600;color:var(--on);cursor:pointer;list-style:none}
+  section[data-name="Map"] .wtp-more summary:hover{color:var(--wt,var(--good-tone))}
+  section[data-name="Map"] .wtp-more summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  section[data-name="Map"] .wtp-more summary::-webkit-details-marker{display:none}
+  section[data-name="Map"] .wtp-more summary svg.i{width:18px;height:18px;color:var(--on-mute);transition:transform 150ms ease-out}
+  section[data-name="Map"] .wtp-more[open] summary svg.i{transform:rotate(180deg)}
+  section[data-name="Map"] .wtp-body{display:grid;gap:8px;padding-top:4px}
+  /* the deep read: a small heading per part */
+  section[data-name="Map"] .wtp-h4{margin-top:14px;font-family:var(--sans);font-size:14px;font-weight:700;color:var(--on)}
+  section[data-name="Map"] .wtp-src{font-size:12px;color:var(--on-mute)}
+  section[data-name="Map"] .wtp-body .wtp-src{margin-top:12px}
+  /* other months to plant: one small tile per month, coloured by how good a start it is, the best one outlined */
+  section[data-name="Map"] .wtp-mos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 16px;margin:4px 0 0;padding:0;list-style:none}
+  section[data-name="Map"] .gm-sec .wtp-mo{--mc:var(--fair-tone);display:flex;align-items:center;gap:8px;padding:0;font-size:13px;counter-increment:none}
+  section[data-name="Map"] .gm-sec .wtp-mo::before{content:"";position:static;flex:none;width:8px;height:8px;border:0;border-radius:999px;background:var(--mc)}
+  section[data-name="Map"] .wtp-mo[data-band="good"]{--mc:var(--good-tone)}
+  section[data-name="Map"] .wtp-mo[data-band="poor"]{--mc:var(--poor-tone)}
+  section[data-name="Map"] .gm-plan .wtp-mo b{font-weight:600;color:var(--on)}
+  section[data-name="Map"] .wtp-mo span{color:var(--on-mute)}
+  section[data-name="Map"] .wtp-mo[data-best] span{font-weight:700;color:var(--mc)}
+  section[data-name="Map"] .wtp-tbl{width:100%;margin:4px 0;border-collapse:separate;border-spacing:0;font-size:13px}
+  section[data-name="Map"] .wtp-tbl th,section[data-name="Map"] .wtp-tbl td{padding:8px 10px;text-align:left}
+  section[data-name="Map"] .wtp-tbl tbody tr:nth-child(odd)>*{background:var(--sand-150)}
+  section[data-name="Map"] .wtp-tbl tbody tr>:first-child{border-radius:8px 0 0 8px}
+  section[data-name="Map"] .wtp-tbl tbody tr>:last-child{border-radius:0 8px 8px 0}
+  section[data-name="Map"] .wtp-tbl thead th{font-size:12px;font-weight:600;color:var(--on-mute)}
+  section[data-name="Map"] .wtp-tbl tbody th{font-weight:600;color:var(--on)}
+  section[data-name="Map"] .wtp-mark{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;color:var(--fair-tone);background:color-mix(in srgb,var(--fair-tone) 12%,transparent)}
+  section[data-name="Map"] .wtp-mark[data-mark="good"]{color:var(--good-tone);background:color-mix(in srgb,var(--good-tone) 12%,transparent)}
+  /* the crop window shows one topic at a time, like tabs: the list on the left picks it, Back and Next at the foot */
+  section[data-name="Map"] .gm-nav a{cursor:pointer}
+  section[data-name="Map"] .gm-nav a:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+  section[data-name="Map"] .gm-pager{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-top:24px}
+  section[data-name="Map"] .gm-pg{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--on-line);background:var(--milk);font-size:13px;font-weight:600;color:var(--on);transition-property:background-color,transform;transition-duration:150ms;transition-timing-function:ease-out}
+  section[data-name="Map"] .gm-pg:hover{background:var(--sand-150)}
+  section[data-name="Map"] .gm-pg:active{transform:scale(.97)}
+  section[data-name="Map"] .gm-pg svg.i{width:16px;height:16px}
+  section[data-name="Map"] .gm-pg.next{margin-left:auto;background:var(--ink);border-color:var(--ink);color:#fff}
+  section[data-name="Map"] .gm-pg.next:hover{background:color-mix(in srgb,var(--ink) 85%,#fff)}
+  /* the crop window's left side: two tabs, and the guide's topics listed under "Cultivation guide" */
+  section[data-name="Map"] .gm-tabs{display:flex;flex-direction:column;gap:2px}
+  section[data-name="Map"] .gm-sub{display:flex;flex-direction:column;margin:4px 0 0 20px}
+  section[data-name="Map"] .gm-sub a{min-height:34px;padding:3px 8px 3px 4px;font-size:12.5px;font-weight:500}
+  section[data-name="Map"] .gm-sub .ti{width:22px;height:22px;border-radius:6px}
+  section[data-name="Map"] .gm-sub .ti svg.i{width:12px;height:12px}
+  section[data-name="Map"] .gm-sub a[aria-current]{background:rgba(0,0,0,.045);box-shadow:none;color:var(--on);font-weight:600}
+  /* the cultivation guide: every topic on one page, spaced apart, no boxes or lines */
+  section[data-name="Map"] .gm-guide{display:grid;gap:28px;margin-top:20px;padding-left:44px}
+  section[data-name="Map"] .gm-topic{scroll-margin-top:8px}
+  section[data-name="Map"] .gm-topic h4{display:flex;align-items:center;gap:10px;font-family:var(--sans);font-size:15px;font-weight:600;color:var(--on)}
+  section[data-name="Map"] .gm-topic h4 .tc{margin-left:auto;font-size:12px;font-weight:600;color:var(--on-mute)}
+  section[data-name="Map"] .gm-topic ol{margin-top:12px;padding-left:0}
+  @media (max-width:720px){
+    section[data-name="Map"] .gm-tabs{flex-direction:row;gap:4px}
+    section[data-name="Map"] .gm-sub{display:none}
+    section[data-name="Map"] .gm-guide{padding-left:0}
   }
 }

@@ -7,7 +7,6 @@ export const TODAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate())
 export const DAY_MS = 864e5
 export const AHEAD_MONTHS = 36
 export const LESS_SURE_AFTER = 12
-export const DEFAULT_MONTHS = 12
 
 export function monthIndex(d: Date) {
   return d.getFullYear() * 12 + d.getMonth()
@@ -69,8 +68,41 @@ export function lengthWord(d: Dates) {
   const months = Math.round(days / MONTH_DAYS)
   return days < DAYS_UNDER ? days + (days === 1 ? ' day' : ' days') : months + (months === 1 ? ' month' : ' months')
 }
+/* the dates the map opens with: today to the end of this planting season */
+export const defaultDates = (): Dates => seasonChoices(1)[0].dates
 export function isDefaultDates(d: Dates) {
-  return +d.from === +TODAY && +d.to === +lengthEnd(TODAY, DEFAULT_MONTHS)
+  const now = defaultDates()
+  return +d.from === +now.from && +d.to === +now.to
+}
+
+/* The planting seasons the dates are picked by: Rainy (June to November) and Dry (December to May).
+   The weather seasons below (wet, cool dry, hot dry) still describe the weather inside them. */
+export type PlantSeasonKey = 'rainy' | 'dry'
+export const PLANT_SEASON_NAME: Record<PlantSeasonKey, string> = { rainy: 'Rainy season', dry: 'Dry season' }
+const RAINY_FIRST = 5 /* June */
+const RAINY_LAST = 10 /* November */
+export function plantSeasonKey(m: number): PlantSeasonKey {
+  const x = m % 12
+  return x >= RAINY_FIRST && x <= RAINY_LAST ? 'rainy' : 'dry'
+}
+function plantSeasonEnd(m: number) {
+  let e = m
+  while (plantSeasonKey(e + 1) === plantSeasonKey(m)) e++
+  return e
+}
+export type SeasonChoice = { k: PlantSeasonKey; a: number; b: number; isNow: boolean; dates: Dates }
+/* the dates dropdown's choices: the rest of this season (from today), then the whole seasons after it */
+export function seasonChoices(count: number): SeasonChoice[] {
+  const out: SeasonChoice[] = []
+  let a = M0
+  while (out.length < count && monthEnd(a - 1) < MAX_END) {
+    const b = plantSeasonEnd(a)
+    const end = monthEnd(b)
+    const isNow = a === M0
+    out.push({ k: plantSeasonKey(a), a, b, isNow, dates: { from: isNow ? TODAY : new Date(yearOf(a), a % 12, 1), to: end > MAX_END ? MAX_END : end } })
+    a = b + 1
+  }
+  return out
 }
 
 /* Seasons (the usual Philippine calendar) */
@@ -91,4 +123,23 @@ export function seasonsIn(a: number, b: number) {
     else out.push({ k, a: m, b: m })
   }
   return out
+}
+export function seasonEnd(m: number) {
+  const k = seasonKey(m)
+  let e = m
+  while (seasonKey(e + 1) === k) e++
+  return e
+}
+export function seasonStart(m: number) {
+  const k = seasonKey(m)
+  let s = m
+  while (seasonKey(s - 1) === k) s--
+  return s
+}
+/* the last day of the season that from falls in (seasons: 1), or of a later one (2: the next season too); never past MAX_END */
+export function seasonEndDate(from: Date, seasons = 1) {
+  let m = seasonEnd(monthIndex(from))
+  for (let i = 1; i < seasons; i++) m = seasonEnd(m + 1)
+  const d = monthEnd(m)
+  return d > MAX_END ? MAX_END : d
 }

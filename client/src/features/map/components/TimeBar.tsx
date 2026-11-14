@@ -1,4 +1,5 @@
-import { Pause, Play, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarRange, ChevronDown, Pause, Play, RotateCcw } from 'lucide-react'
 import { clamp } from '../climate'
 import { MON, mName, TODAY, yearOf, type Dates, type Span } from '../dates'
 import type { Strip } from '../hooks/useClimateLayer'
@@ -11,6 +12,7 @@ type Props = { dates: Dates; w: Span; frame: number | null; playing: boolean; st
 /* the time bar: play the dates month by month (shown when they cover two months or more); each month is coloured like the map
    at its centre for the picked layer, striped where there's no forecast (NASA's usual) */
 export function TimeBar({ dates, w, frame, playing, strip, onPlay, onScrub }: Props) {
+  const [isOpen, setIsOpen] = useState(false) /* starts hidden; a small button opens it */
   const last = w.b - w.a
   const pos = (k: number) => clamp(k / last, 0, 1) * 100 /* a month k's centre, in % of the lane */
   const k = frame ?? 0
@@ -23,6 +25,19 @@ export function TimeBar({ dates, w, frame, playing, strip, onPlay, onScrub }: Pr
   const marks: number[] = []
   for (let i = 1; i <= last; i++) if ((w.a + i) % step === 0 && pos(i) >= MARK_MIN_POS) marks.push(i)
   const markText = (m: number) => MON[m % 12] + (m % 12 === 0 ? ' ' + yearOf(m) : '')
+
+  const collapse = () => {
+    if (playing) onPlay() /* stop playing so the map doesn't keep changing out of sight */
+    setIsOpen(false)
+  }
+
+  if (!isOpen) {
+    return (
+      <button className="chip topen" type="button" aria-controls="tbar" aria-expanded={false} onClick={() => setIsOpen(true)}>
+        <CalendarRange className="i" />Timeline
+      </button>
+    )
+  }
 
   return (
     <div className="tbar" id="tbar">
@@ -50,6 +65,7 @@ export function TimeBar({ dates, w, frame, playing, strip, onPlay, onScrub }: Pr
         </div>
       </div>
       <p className="tread num" id="tread">{frame === null ? 'Your dates' : mName(w.a + frame)}</p>
+      <button className="tclose" type="button" aria-label="Hide timeline" aria-expanded={true} onClick={collapse}><ChevronDown className="i" /></button>
     </div>
   )
 }

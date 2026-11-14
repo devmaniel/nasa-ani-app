@@ -21,6 +21,8 @@ export function ReportMap({ place }: { place: Place }) {
       attributionControl: false,
     })
     map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
+    /* MapLibre folds the credits to their ⓘ only once the map is dragged; this one can't be, so fold them once it has drawn */
+    map.once('idle', () => map.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'))
     new Marker({ element: pinElement(), anchor: 'bottom' }).setLngLat([place.lon, place.lat]).addTo(map)
     return () => map.remove()
   }, [place])

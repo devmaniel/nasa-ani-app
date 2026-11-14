@@ -111,8 +111,16 @@ export function MapStage({ place, is3d, onMap, inert }: Props) {
       maxPitch: is3dRef.current ? MAX_PITCH : 0,
       attributionControl: false,
     })
-    /* the map's credits sit in the empty top-right corner, clear of the buttons; they fold to an "i" once the map is dragged */
+    /* the map's credits: folded to an "i" from the start, the "i" opens them */
     map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
+    /* MapLibre opens them when the credits first arrive (with the style or a source); fold them back that once */
+    const foldCredits = () => {
+      const credits = map.getContainer().querySelector('.maplibregl-ctrl-attrib.maplibregl-compact-show')
+      if (!credits) return
+      credits.classList.remove('maplibregl-compact-show')
+      map.off('data', foldCredits)
+    }
+    map.on('data', foldCredits)
     map.on('style.load', () => map.setProjection({ type: is3dRef.current ? 'globe' : 'mercator' }))
     map.on('load', () => {
       map.addSource('terrain', { type: 'raster-dem', tiles: [TERRAIN_TILES], encoding: 'terrarium', tileSize: TERRAIN_TILE_PX, maxzoom: TERRAIN_MAX_ZOOM })

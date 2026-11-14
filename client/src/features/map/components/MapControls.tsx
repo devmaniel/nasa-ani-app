@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Cloud, CloudSun, Droplets, LandPlot, Minus, Navigation, Plus, Sprout, Sun } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronUp, Cloud, CloudSun, Droplets, LandPlot, Layers, Minus, Navigation, Plus, Sprout, Sun } from 'lucide-react'
 import type { MapLibreMap } from 'maplibre-gl'
 import { useEffect, useState, type ReactNode } from 'react'
 import { TbRipple } from 'react-icons/tb'
@@ -34,14 +34,15 @@ function readView(map: MapLibreMap) {
 export type Hint = { msg: string; warn: boolean }
 type Props = {
   layer: LayerKey | null; onLayer: (l: LayerKey) => void; locating: boolean; onLocate: () => void; hint: Hint | null; inert: boolean; children: ReactNode
-  map: MapLibreMap | null; is3d: boolean; onToggle3d: () => void; layerView: LayerView | null
+  map: MapLibreMap | null; is3d: boolean; onToggle3d: () => void; layerView: LayerView | null; showLayers: boolean
 }
 
 /* on the map: the colour key top left, under the header; 2D/3D, tilt, my location and zoom bottom right; a hint for a moment;
    bottom left, in one column: the layer chips right on top of the time bar, then the centre's coordinates and the scale.
    The map buttons wait for the map. */
-export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, children, map, is3d, onToggle3d, layerView }: Props) {
+export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, children, map, is3d, onToggle3d, layerView, showLayers }: Props) {
   const [view, setView] = useState<ReturnType<typeof readView> | null>(null)
+  const [isLayersOpen, setIsLayersOpen] = useState(false) /* the chips start hidden; a "Layers" chip opens them */
   const scale = view && view.kmPx > 0 ? scaleFor(view.kmPx) : null
   const tilt = (up: boolean) => map?.easeTo({ pitch: map.getPitch() + (up ? TILT_STEP : -TILT_STEP) }) /* the map keeps it within its limits */
 
@@ -57,7 +58,8 @@ export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, c
 
   return (
     <div className="mapui" inert={inert}>
-      {layerView && <LayerLegend view={layerView} />}
+      {/* the key shows with the layer chips and the time bar, and hides with them */}
+      {showLayers && layerView && <LayerLegend view={layerView} />}
       <nav className="rail" aria-label="Map tools">
         <div className="rg">
           {/* the button names the view it switches to */}
@@ -81,14 +83,26 @@ export function MapControls({ layer, onLayer, locating, onLocate, hint, inert, c
       </nav>
       <p className="hint glass" id="hint" aria-live="polite" hidden={!hint} data-warn={hint?.warn ? '' : undefined}>{hint?.msg}</p>
       <div className="dock">
-        {layerView && <NoDataBadge view={layerView} />}
-        <div className="layers" role="group" aria-label="Map layer">
-          {CHIPS.map(([l, Ic, label]) => (
-            <button key={l} className="chip" type="button" data-layer={l} aria-pressed={layer === l} onClick={() => onLayer(l)}>
-              <Ic className="i" aria-hidden />{label}
+        {showLayers && layerView && <NoDataBadge view={layerView} />}
+        {showLayers && (isLayersOpen ? (
+          <div className="layers" id="layers" role="group" aria-label="Map layer">
+            {CHIPS.map(([l, Ic, label]) => (
+              <button key={l} className="chip" type="button" data-layer={l} aria-pressed={layer === l} onClick={() => onLayer(l)}>
+                <Ic className="i" aria-hidden />{label}
+              </button>
+            ))}
+            {/* hides the chips only; the picked layer stays on the map */}
+            <button className="chip cicon" type="button" aria-label="Hide layers" aria-expanded={true} onClick={() => setIsLayersOpen(false)}>
+              <ChevronLeft className="i" aria-hidden />
             </button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="layers">
+            <button className="chip" type="button" aria-controls="layers" aria-expanded={false} onClick={() => setIsLayersOpen(true)}>
+              <Layers className="i" aria-hidden />Layers
+            </button>
+          </div>
+        ))}
         {children}
         <div className="foot" aria-hidden="true">
           <span className="ll num" id="ll">{view && coords(view.lon, view.lat)}</span>

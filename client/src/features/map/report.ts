@@ -3,7 +3,7 @@ import { Bug, Clock, Cloud, CloudSun, Droplet, Shovel, Sprout, Sun } from 'lucid
 import type { AirUsual } from './api'
 import { sum, type Point } from './climate'
 import { band, cropFit, cropMonths, CROPS, GOOD, ISSUE, ranked, type CropWeather, type Fit } from './crops'
-import { isLessSure, LESS_SURE_AFTER, M0, MON, MONTH_FULL, mName, seasonKey, yearOf, type Span } from './dates'
+import { isLessSure, LESS_SURE_AFTER, M0, MON, MONTH_FULL, mName, yearOf, type Span } from './dates'
 import type { MonthValue, Weather } from './hooks/useWeather'
 import type { IconType, Tone } from './types'
 
@@ -55,18 +55,8 @@ export function placeWeather(wx: Weather, p: Point, w: Span): PlaceWeather | nul
   }
 }
 
-export function seasonEnd(m: number) {
-  const k = seasonKey(m)
-  let e = m
-  while (seasonKey(e + 1) === k) e++
-  return e
-}
-export function seasonStart(m: number) {
-  const k = seasonKey(m)
-  let s = m
-  while (seasonKey(s - 1) === k) s--
-  return s
-}
+/* the seasons' edges live with the dates now; kept here for the report's cards */
+export { seasonEnd, seasonStart } from './dates'
 /* up to 18 months the season bar and the chart say "Nov"; longer, just "N" */
 const ABBR_MAX = 18
 export function monthLabel(m: number, n: number) {

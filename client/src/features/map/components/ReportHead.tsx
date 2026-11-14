@@ -2,7 +2,7 @@ import { Calendar, ChevronDown, ChevronRight, Info, LandPlot, MapPin, Mountain }
 import type { RefObject } from 'react'
 import { BAND, band } from '../crops'
 import {
-  DEFAULT_MONTHS, fmtY, isDefaultDates, lengthWord, M0, MONTH_FULL, seasonKey, seasonsIn, SEASON_NAME, yearOf, type Dates, type Span,
+  fmtY, isDefaultDates, lengthWord, M0, MONTH_FULL, seasonKey, seasonsIn, SEASON_NAME, yearOf, type Dates, type Span,
 } from '../dates'
 import { landLine, type Land } from '../land'
 import { groundLine, treesLine, type Ground } from '../space'
@@ -103,7 +103,7 @@ export function ReportHead({ place, dates, w, loading, land, ground, moves, aler
           )}
           <p className="rp-when" id="rp-when">
             <Calendar className="i" />
-            <b>{isDefaultDates(dates) ? 'Next ' + DEFAULT_MONTHS + ' months' : lengthWord(dates)}</b>
+            <b>{isDefaultDates(dates) ? 'Rest of this season' : lengthWord(dates)}</b>
             <span className="num">{fmtY(dates.from)} – {fmtY(dates.to)}</span>
           </p>
           <div className="rp-rib" id="rp-ribbon"><Ribbon w={w} /></div>

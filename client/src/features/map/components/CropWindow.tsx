@@ -1,51 +1,37 @@
-import { Calendar, Info, MapPin, Sprout, X } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BAND, band, bestPlant, countOf, cropMonths, CROPS, cropWhy, harvestMonth, landText, readyIn, slopeText, regionBands, regionsLine, type Band, type Crop, type CropWeather, type Fit } from '../crops'
+import { BookOpen, Calendar, ChevronLeft, ChevronRight, Info, MapPin, Sprout, X } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { BAND, band, bestPlant, countOf, cropMonths, CROPS, readyIn, regionBands, regionsLine, type Band, type Crop, type CropWeather } from '../crops'
 import { spanOf, type Dates, type Span } from '../dates'
 import { GD_TOPIC_ICON, GD_TOPICS, guideOf } from '../guides'
 import { useSpace } from '../hooks/useSpace'
 import { cropWeather, useWeather } from '../hooks/useWeather'
-import { GAEZ_CROP, SLOPE_FROM } from '../land'
+import { SLOPE_FROM } from '../land'
 import { REGIONS, type Place } from '../places'
 import type { IconType, Tone } from '../types'
-import { Axis, CalendarKey, Chips, Gantt, LoadingStatus, Sk, type Chip } from './Parts'
+import { Chips, LoadingStatus, Sk, type Chip } from './Parts'
+import { LearnMore, PlanPlace } from './WhenToPlant'
 
-const CAL_MIN_MONTHS = 6
-/* px below the top of the topics where a heading counts as being read */
-const SPY_TOP = 40
 type Sec = { t: string; ic: [IconType, Tone]; n?: number; body: ReactNode }
 
 function SecIcon({ ic: [Ic, tone] }: { ic: Sec['ic'] }) {
   return <span className="ti" data-tone={tone}><Ic className="i" aria-hidden /></span>
 }
 
-/* "When to plant" for a place: its calendar from the dates' start to the harvest, then why and how long */
-function PlanPlace({ r, w, slope }: { r: Fit; w: Span; slope: number | null }) {
-  const a = w.a
-  const b = Math.max(a + CAL_MIN_MONTHS - 1, harvestMonth(r))
-  const ground = slopeText(r.c, slope)
-  return (
-    <>
-      <Axis a={a} b={b} className="cax" />
-      <Gantt r={r} w={w} a={a} b={b} />
-      <CalendarKey />
-      <p>{cropWhy(r)}</p>
-      <p>{landText(r) ?? (GAEZ_CROP[r.c.n] ? 'No land rating here from FAO.' : 'FAO has no land rating for ' + r.c.n.toLowerCase() + '.')}</p>
-      {ground && <p>{ground}</p>}
-      <p>{readyIn(r.c)}</p>
-    </>
-  )
-}
-/* "When to plant" for the whole country: the regions by how good a time it is */
+/* "When to plant" for the whole country: how many regions suit it, then the regions by how good a time it is */
 function PlanCountry({ c, bands }: { c: Crop; bands: Band[] }) {
   return (
     <>
-      {(['good', 'fair', 'poor'] as const).map((b) => {
-        const names = REGIONS.filter((_, j) => bands[j] === b).map((p) => p.n).join(', ')
-        return names ? <p key={b}><b>{BAND[b]}:</b> {names}</p> : null
-      })}
-      <p>{readyIn(c)}</p>
-      <p>Pick a place to see when to plant and harvest there.</p>
+      <div className="wtp">
+        <p className="wtp-k">Across the country</p>
+        <p className="wtp-h">{regionsLine(countOf(bands, 'good'), countOf(bands, 'fair'))}</p>
+        <p className="wtp-why">{readyIn(c)} Pick a place to see the best month to plant there.</p>
+      </div>
+      <LearnMore>
+        {(['good', 'fair', 'poor'] as const).map((b) => {
+          const names = REGIONS.filter((_, j) => bands[j] === b).map((p) => p.n).join(', ')
+          return names ? <p key={b}><b>{BAND[b]}:</b> {names}</p> : null
+        })}
+      </LearnMore>
     </>
   )
 }
@@ -57,7 +43,7 @@ function contentFor(wx: CropWeather, c: Crop, place: Place | null, w: Span, slop
     const bd = band(r.score)
     return {
       chips: [[MapPin, BAND[bd] + ' · ' + place.name]] satisfies Chip[],
-      plan: <div className={'gm-plan ' + bd}><PlanPlace r={r} w={w} slope={slope} /></div>,
+      plan: <div className={'gm-plan ' + bd}><PlanPlace wx={wx} place={place} r={r} w={w} slope={slope} /></div>,
     }
   }
   const bands = regionBands(wx, c, w)
@@ -71,11 +57,38 @@ function contentFor(wx: CropWeather, c: Crop, place: Place | null, w: Span, slop
 type Props = { crop: string; place: Place | null; dates: Dates; loading: boolean; onClose: () => void }
 
 /* the crop window: "When to plant", then the crop's growing guide when it has one; topics on the left */
+const GUIDE_TAB = 1
+/* px below the top of the guide where a topic counts as being read */
+const SPY_TOP = 48
+const TOPIC_GAP = 8
+
+function scrollToTopic(body: HTMLElement | null, j: number) {
+  const el = document.getElementById('gm-t-' + j)
+  if (body && el) body.scrollTop = el.offsetTop - TOPIC_GAP
+}
+
+/* the cultivation guide: every topic on one page with its numbered steps */
+function GuideTopics({ topics }: { topics: Sec[] }) {
+  return (
+    <div className="gm-guide">
+      {topics.map((s, j) => (
+        <div key={s.t} className="gm-topic" id={'gm-t-' + j}>
+          <h4><SecIcon ic={s.ic} />{s.t}{s.n ? <span className="tc num">{s.n + (s.n === 1 ? ' step' : ' steps')}</span> : null}</h4>
+          {s.body}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* the crop window, two tabs on the left: "When to plant", then the cultivation guide (all its topics on one scrolling page,
+   listed under the tab so a topic can be jumped to) */
 export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Props) {
   const gmRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
-  const [current, setCurrent] = useState(0)
-  const clickedRef = useRef(false)
+  const jumpRef = useRef<number | null>(null) /* a topic to scroll to once the guide tab is showing */
+  const [tab, setTab] = useState(0)
+  const [topic, setTopic] = useState(0)
   const c = CROPS.find((x) => x.n === crop)
   const w = spanOf(dates)
   /* the same NASA and forecast data as the map and the sidebar */
@@ -86,6 +99,13 @@ export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Pr
   useEffect(() => {
     gmRef.current?.focus()
   }, [])
+  /* a topic picked from another tab: scroll to it once the guide has rendered */
+  useEffect(() => {
+    const j = jumpRef.current
+    if (j === null) return
+    jumpRef.current = null
+    scrollToTopic(bodyRef.current, j)
+  })
   if (!c) return null
 
   const steps = guideOf(c.n)
@@ -95,34 +115,40 @@ export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Pr
   const content = contentFor(cropWeather(wx), c, place, w, slope)
   const plan: Sec = { t: 'When to plant', ic: [Calendar, 'grow'], body: wx.status === 'error' ? <p role="alert">Couldn&rsquo;t load NASA&rsquo;s numbers. Check the connection, then open the crop again.</p> : content.plan }
   const topics = steps ? GD_TOPICS.map((t, j): Sec => ({ t, ic: GD_TOPIC_ICON[t], n: steps[j].length, body: <ol>{steps[j].map((x) => <li key={x}>{x}</li>)}</ol> })) : []
-  const secs: Sec[] = [plan, ...topics]
-  /* the topic being read is marked in the list: the last one whose heading has passed the reading line.
-     The line sits near the top, and over the last screen of scrolling it slides to the bottom, so the short last topics get their turn */
-  const spy = () => {
-    const body = bodyRef.current
-    if (!body || clickedRef.current) return
-    const left = body.scrollHeight - body.clientHeight - body.scrollTop
-    const line = body.getBoundingClientRect().top + SPY_TOP + (body.clientHeight - SPY_TOP) * Math.max(0, 1 - left / body.clientHeight)
-    let on = 0
-    body.querySelectorAll('.gm-sec').forEach((sec, j) => {
-      if (sec.getBoundingClientRect().top <= line) on = j
-    })
-    setCurrent(on)
-  }
-  /* a clicked topic stays marked until the person scrolls themselves */
-  const release = () => {
-    clickedRef.current = false
+  const guide: Sec = { t: 'Cultivation guide', ic: [BookOpen, 'grow'], n: topics.length, body: <GuideTopics topics={topics} /> }
+  const tabs: Sec[] = steps ? [plan, guide] : [plan]
+  const on = Math.min(tab, tabs.length - 1)
+  const sec = tabs[on]
+  const goTab = (j: number, focus = false) => {
+    setTab(j)
+    setTopic(0)
+    if (bodyRef.current) bodyRef.current.scrollTop = 0
+    if (focus) document.getElementById('gm-tab-' + j)?.focus()
   }
   const goTopic = (j: number) => {
+    setTopic(j)
+    if (on === GUIDE_TAB) return scrollToTopic(bodyRef.current, j)
+    jumpRef.current = j
+    setTab(GUIDE_TAB)
+  }
+  /* on the guide, the topic being read is marked: the last one whose top has passed near the top, or the last one at the very bottom */
+  const spy = () => {
     const body = bodyRef.current
-    const sec = document.getElementById('gm-s-' + j)
-    const h = document.getElementById('gm-h-' + j)
-    if (!body || !sec || !h) return
-    clickedRef.current = true
-    setCurrent(j)
-    body.scrollTop = sec.offsetTop - 8
-    h.setAttribute('tabindex', '-1')
-    h.focus({ preventScroll: true })
+    if (!body || on !== GUIDE_TAB) return
+    const top = body.getBoundingClientRect().top + SPY_TOP
+    const atEnd = body.scrollHeight - body.clientHeight - body.scrollTop < 2
+    let now = 0
+    body.querySelectorAll('.gm-topic').forEach((el, j) => {
+      if (atEnd || el.getBoundingClientRect().top <= top) now = j
+    })
+    setTopic(now)
+  }
+  /* arrow keys move between the tabs, Home and End jump to the first and last */
+  const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const to = { ArrowDown: on + 1, ArrowRight: on + 1, ArrowUp: on - 1, ArrowLeft: on - 1, Home: 0, End: tabs.length - 1 }[e.key]
+    if (to === undefined) return
+    e.preventDefault()
+    goTab((to + tabs.length) % tabs.length, true)
   }
   const none = <p className="gd-none"><Info className="i" />No growing guide for {c.n.toLowerCase()} yet.</p>
 
@@ -140,34 +166,56 @@ export function CropWindow({ crop, place, dates, loading: waiting, onClose }: Pr
           <button className="x" type="button" id="gm-x" aria-label="Close" title="Close" onClick={onClose}><X className="i" /></button>
         </header>
         <div className="gm-main">
-          <nav className="gm-nav" id="gm-nav" aria-label="Topics">
-            {loading ? secs.map((s) => <Sk key={s.t} w="80%" h={28} />) : secs.map((s, j) => (
-              <a key={s.t} href={'#gm-s-' + j} data-gm-to={j} aria-current={j === current ? 'true' : undefined} onClick={(e) => {
-                e.preventDefault()
-                goTopic(j)
-              }}>
-                <SecIcon ic={s.ic} />{s.t}
-              </a>
-            ))}
-          </nav>
-          <div className="gm-body" id="gm-body" ref={bodyRef} aria-busy={loading || undefined} onScroll={spy} onWheel={release} onTouchStart={release} onPointerDown={release} onKeyDown={release}>
+          <div className="gm-nav" id="gm-nav">
+            {loading ? [...tabs, ...topics].map((s) => <Sk key={s.t} w="80%" h={28} />) : (
+              <>
+                <div className="gm-tabs" role="tablist" aria-label="Crop window" aria-orientation="vertical" onKeyDown={onTabKey}>
+                  {tabs.map((s, j) => (
+                    <a
+                      key={s.t} id={'gm-tab-' + j} role="tab" tabIndex={j === on ? 0 : -1} aria-selected={j === on} aria-controls="gm-panel"
+                      aria-current={j === on ? 'true' : undefined} onClick={() => goTab(j)}
+                    >
+                      <SecIcon ic={s.ic} />{s.t}
+                    </a>
+                  ))}
+                </div>
+                {topics.length > 0 && (
+                  <nav className="gm-sub" aria-label="Guide topics">
+                    {topics.map((s, j) => (
+                      <a key={s.t} href={'#gm-t-' + j} aria-current={on === GUIDE_TAB && j === topic ? 'true' : undefined} onClick={(e) => {
+                        e.preventDefault()
+                        goTopic(j)
+                      }}>
+                        <SecIcon ic={s.ic} />{s.t}
+                      </a>
+                    ))}
+                  </nav>
+                )}
+              </>
+            )}
+          </div>
+          <div className="gm-body" id="gm-body" ref={bodyRef} aria-busy={loading || undefined} onScroll={spy}>
             {loading ? (
               <>
                 <LoadingStatus />
-                {secs.slice(0, 3).map((s) => <div key={s.t} className="sk-sec"><Sk w="40%" h={18} /><Sk w="100%" h={12} /><Sk w="92%" h={12} /><Sk w="70%" h={12} /></div>)}
+                {tabs.map((s) => <div key={s.t} className="sk-sec"><Sk w="40%" h={18} /><Sk w="100%" h={12} /><Sk w="92%" h={12} /><Sk w="70%" h={12} /></div>)}
               </>
             ) : (
               <>
-                {secs.map((s, j) => (
-                  <section key={s.t} className="gm-sec" id={'gm-s-' + j} aria-labelledby={'gm-h-' + j}>
-                    <h3 id={'gm-h-' + j}>
-                      <SecIcon ic={s.ic} />{s.t}
-                      {s.n ? <span className="tc num">{s.n + (s.n === 1 ? ' step' : ' steps')}</span> : null}
-                    </h3>
-                    {s.body}
-                  </section>
-                ))}
+                <section className="gm-sec" id="gm-panel" role="tabpanel" aria-labelledby={'gm-tab-' + on}>
+                  <h3>
+                    <SecIcon ic={sec.ic} />{sec.t}
+                    {sec.n ? <span className="tc num">{sec.n + ' topics'}</span> : null}
+                  </h3>
+                  {sec.body}
+                </section>
                 {!steps && none}
+                {tabs.length > 1 && (
+                  <div className="gm-pager">
+                    {on > 0 && <button className="gm-pg" type="button" onClick={() => goTab(on - 1)}><ChevronLeft className="i" aria-hidden />{tabs[on - 1].t}</button>}
+                    {on < tabs.length - 1 && <button className="gm-pg next" type="button" onClick={() => goTab(on + 1)}>Next: {tabs[on + 1].t}<ChevronRight className="i" aria-hidden /></button>}
+                  </div>
+                )}
               </>
             )}
           </div>

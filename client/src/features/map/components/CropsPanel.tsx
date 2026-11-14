@@ -1,3 +1,4 @@
+import { Sprout } from 'lucide-react'
 import type { MouseEvent, ReactNode } from 'react'
 import { band, bestPlant, countOf, CROPS, harvestMonth, ranked, rating, ratingBand, regionBands, type Band, type Crop, type CropWeather } from '../crops'
 import { M0, MONTH_FULL, yearOf, type Span } from '../dates'
@@ -6,10 +7,8 @@ import { REGIONS, type Place } from '../places'
 export type OpenGuide = (crop: string, from: HTMLElement) => void
 
 const RATE_MAX = 5
-/* the crops are rated for planting this month: the best to plant now come first */
-const NOW: Span = { a: M0, b: M0 }
-/* what a rating means, in a farmer's words, and the order the groups come in */
-const VERDICT: Record<Band, string> = { good: 'Plant now', fair: 'With care', poor: 'Wait' }
+/* what a rating means, in a farmer's words ("Plant now" only when the month is this one), and the order the groups come in */
+const verdictOf = (b: Band, pm: number) => ({ good: pm === M0 ? 'Plant now' : 'Good to plant', fair: 'With care', poor: 'Wait' })[b]
 const ORDER: Band[] = ['good', 'fair', 'poor']
 
 /* a photo per crop (Wikimedia Commons, 250 px), by file name: the crop's name in kebab-case */
@@ -34,14 +33,14 @@ function Rating({ n }: { n: number }) {
 }
 
 /* one crop: its photo, its name with the verdict, one line on what to expect, the rating; it opens the crop's window */
-function CropRow({ c, n, line, onOpen }: { c: Crop; n: number; line: string; onOpen: OpenGuide }) {
+function CropRow({ c, n, pm, line, onOpen }: { c: Crop; n: number; pm: number; line: string; onOpen: OpenGuide }) {
   const bd = ratingBand(n)
   return (
     <li className={bd}>
       <button className="crh" type="button" data-guide={c.n} aria-haspopup="dialog" onClick={(e: MouseEvent<HTMLButtonElement>) => onOpen(c.n, e.currentTarget)}>
         <img className="cph" src={photoOf(c.n)} alt="" loading="lazy" />
         <span className="crb">
-          <span className="cn"><b>{c.n}</b><span className="vd">{VERDICT[bd]}</span></span>
+          <span className="cn"><b>{c.n}</b><span className="vd">{verdictOf(bd, pm)}</span></span>
           <span className="when">{line}</span>
           <Rating n={n} />
         </span>
@@ -51,37 +50,44 @@ function CropRow({ c, n, line, onOpen }: { c: Crop; n: number; line: string; onO
 }
 
 /* the rows in three groups (Plant now, With care, Wait), each headed with how many it holds; empty groups are left out */
-function Groups({ rows }: { rows: { n: number; row: ReactNode }[] }) {
-  return ORDER.map((b) => {
+function Groups({ rows, pm }: { rows: { n: number; row: ReactNode }[]; pm: number }) {
+  const groups = ORDER.map((b) => {
     const group = rows.filter((r) => ratingBand(r.n) === b)
     return group.length > 0 && (
       <div key={b} className={'crg ' + b}>
-        <h3 className="crg-h">{VERDICT[b]}<span className="num">{group.length}</span></h3>
+        <h3 className="crg-h">{verdictOf(b, pm)}<span className="num">{group.length}</span></h3>
         <ul className="crl">{group.map((r) => r.row)}</ul>
       </div>
     )
   })
+  /* which month the ratings are for: it moves with the time bar */
+  return (
+    <>
+      <p className="crfor"><Sprout className="i" aria-hidden /><span>Rated for planting in <b className="num">{monthWord(pm)}</b>{pm === M0 ? ' (this month)' : ''}</span></p>
+      {groups}
+    </>
+  )
 }
 
-/* one place: each crop rated for planting now, best first; those to plant now say when to harvest,
-   those to wait say the best month in the coming year (w) */
-export function PlaceCrops({ place, wx, w, onOpen }: { place: Place; wx: CropWeather; w: Span; onOpen: OpenGuide }) {
-  const rows = ranked(wx, place, NOW).map((r) => {
+/* one place: each crop rated for planting in month pm, best first; those good to plant say when to harvest,
+   those to wait say the best month inside the dates (w) */
+export function PlaceCrops({ place, wx, w, pm, onOpen }: { place: Place; wx: CropWeather; w: Span; pm: number; onOpen: OpenGuide }) {
+  const rows = ranked(wx, place, { a: pm, b: pm }).map((r) => {
     const n = rating(r.score)
     let line = 'Harvest around ' + monthWord(harvestMonth(r))
     if (ratingBand(n) === 'poor') {
       const best = bestPlant(wx, place, r.c, w.a, w.b)
-      line = band(best.score) === 'poor' ? 'No good month in the coming year' : 'Best to plant in ' + monthWord(best.pm)
+      line = band(best.score) === 'poor' ? 'No good month in your dates' : 'Best to plant in ' + monthWord(best.pm)
     }
-    return { n, row: <CropRow key={r.c.n} c={r.c} n={n} line={line} onOpen={onOpen} /> }
+    return { n, row: <CropRow key={r.c.n} c={r.c} n={n} pm={pm} line={line} onOpen={onOpen} /> }
   })
-  return <Groups rows={rows} />
+  return <Groups rows={rows} pm={pm} />
 }
 
-/* the whole country: each crop rated by how many regions suit planting it now ("with care" counts as half) */
-export function CountryCrops({ wx, onOpen }: { wx: CropWeather; onOpen: OpenGuide }) {
+/* the whole country: each crop rated by how many regions suit planting it in month pm ("with care" counts as half) */
+export function CountryCrops({ wx, pm, onOpen }: { wx: CropWeather; pm: number; onOpen: OpenGuide }) {
   const rows = CROPS.map((c) => {
-    const bands = regionBands(wx, c, NOW)
+    const bands = regionBands(wx, c, { a: pm, b: pm })
     const good = countOf(bands, 'good')
     const fair = countOf(bands, 'fair')
     return { c, good, fair, share: (good + fair / 2) / REGIONS.length }
@@ -89,8 +95,8 @@ export function CountryCrops({ wx, onOpen }: { wx: CropWeather; onOpen: OpenGuid
   return (
     <Groups rows={rows.map((r) => {
       const n = Math.max(1, Math.round(r.share * RATE_MAX))
-      const line = 'Good now in ' + r.good + ' of ' + REGIONS.length + ' regions' + (r.fair ? ' · with care in ' + r.fair : '')
-      return { n, row: <CropRow key={r.c.n} c={r.c} n={n} line={line} onOpen={onOpen} /> }
-    })} />
+      const line = (pm === M0 ? 'Good now in ' : 'Good in ') + r.good + ' of ' + REGIONS.length + ' regions' + (r.fair ? ' · with care in ' + r.fair : '')
+      return { n, row: <CropRow key={r.c.n} c={r.c} n={n} pm={pm} line={line} onOpen={onOpen} /> }
+    })} pm={pm} />
   )
 }

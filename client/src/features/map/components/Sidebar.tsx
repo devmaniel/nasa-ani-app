@@ -7,6 +7,7 @@ import { usePlaceName } from '../hooks/usePlaceName'
 import { MY_PLACE, placeTitle, REGIONS, type Place } from '../places'
 import type { SideTab } from '../types'
 import { CountryCrops, PHOTO_CREDITS, PlaceCrops, type OpenGuide } from './CropsPanel'
+import { DatesBar } from './DatesBar'
 import { LoadingStatus, Sk } from './Parts'
 import { CountryWeather, PlaceWeather } from './WeatherPanel'
 
@@ -14,6 +15,8 @@ type Props = {
   tab: SideTab
   place: Place | null
   dates: Dates
+  onDates: (d: Dates) => void /* new dates picked in the dates bar */
+  pm: number /* the month the crops are rated for planting in: the time bar's month, else the dates' first */
   wv: Span /* the months the rain chart shows: the dates, and more on demand */
   onMore?: () => void /* shows more months; missing at the furthest month */
   loading: boolean
@@ -40,13 +43,13 @@ function SkeletonBody() {
 }
 
 /* the sidebar: Weather or Crops, for the chosen place or the whole country */
-export function Sidebar({ tab, place, dates, wv, onMore, loading: waiting, onOpenGuide, onOpenReport, onClose, inert, leaving, onLeft }: Props) {
+export function Sidebar({ tab, place, dates, onDates, pm, wv, onMore, loading: waiting, onOpenGuide, onOpenReport, onClose, inert, leaving, onLeft }: Props) {
   const w = spanOf(dates)
   const weather = tab === 'weather'
   /* both tabs' numbers: the same NASA and forecast data as the map, at the place or across the regions
-     (Crops needs the months up to the longest crop's harvest) */
+     (Crops needs every month the time bar can show, up to the longest crop's harvest) */
   const pts = place ? [place] : REGIONS
-  const wx = useWeather(pts, weather ? weatherMonths(wv) : cropMonths(w), pts, weather ? WEATHER_LAYERS : undefined)
+  const wx = useWeather(pts, weather ? weatherMonths(wv) : cropMonths(wv), pts, weather ? WEATHER_LAYERS : undefined)
   /* the person's own location is named by its town once OpenStreetMap answers; until then, its coordinates */
   const ownName = usePlaceName(place?.name === MY_PLACE ? place : null)
   const title = !place ? 'Philippines' : place.name === MY_PLACE ? ownName ?? place.sub : placeTitle(place)
@@ -73,12 +76,14 @@ export function Sidebar({ tab, place, dates, wv, onMore, loading: waiting, onOpe
         </details>
         <button className="x sb-x" id="sb-x" type="button" aria-label="Close sidebar" onClick={onClose}><X className="i" /></button>
       </div>
+      {/* the dates: the same on both tabs */}
+      <DatesBar dates={dates} onApply={onDates} />
       <div className="sb-s">
         <div id="sb-body" aria-busy={loading || undefined}>
           {loading ? <><LoadingStatus /><SkeletonBody /></>
             : wx.status === 'error' ? <section><p className="k" role="alert">Couldn&rsquo;t load NASA&rsquo;s numbers. Check the connection, then close and reopen the sidebar.</p></section>
             : <Fragment key={redraw}>{weather ? (place ? <PlaceWeather place={place} wx={wx} w={w} wv={wv} onMore={onMore} dates={dates} /> : <CountryWeather wx={wx} w={w} wv={wv} onMore={onMore} dates={dates} />)
-            : <section className="crops">{place ? <PlaceCrops place={place} wx={cropWeather(wx)} w={w} onOpen={onOpenGuide} /> : <CountryCrops wx={cropWeather(wx)} onOpen={onOpenGuide} />}</section>}</Fragment>}
+            : <section className="crops">{place ? <PlaceCrops place={place} wx={cropWeather(wx)} w={w} pm={pm} onOpen={onOpenGuide} /> : <CountryCrops wx={cropWeather(wx)} pm={pm} onOpen={onOpenGuide} />}</section>}</Fragment>}
         </div>
       </div>
       {place && !loading && (
