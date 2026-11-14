@@ -33,7 +33,7 @@ const VALUE: Record<MapLayer, (v: number) => string> = {
 /* which NASA picture is on the map: the latest, or the month's own */
 const pictureWord = (p: MapPicture, m: number) => (p.time === 'default' ? 'the latest satellite view' : "NASA's satellite view for " + mName(m))
 
-/* the key under the picked weather tile: the month and how sure (measured, forecast, usual or estimate), the value at the map centre,
+/* the key on the map, under the header: the month and how sure (measured, forecast, usual or estimate), the value at the map centre,
    what the colours mean, the source, and which NASA picture is on the map */
 export function LayerLegend({ view }: { view: LayerView }) {
   const { layer, kind, month, live, value, picture } = view
@@ -60,7 +60,7 @@ export function LayerLegend({ view }: { view: LayerView }) {
   )
 }
 
-/* a label in the panel, over the time bar, when the month has no real data: no forecast this far ahead, not measured yet,
+/* a label on the map, over the time bar, when the month has no real data: no forecast this far ahead, not measured yet,
    or no plant picture; the colours then show NASA's usual for the month */
 export function NoDataBadge({ view }: { view: LayerView }) {
   const { layer, month, kind, picture } = view

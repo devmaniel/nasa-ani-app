@@ -1,12 +1,11 @@
 import { ChevronRight, Info, X } from 'lucide-react'
-import { Fragment, type MouseEvent, type ReactNode } from 'react'
+import { Fragment, type MouseEvent } from 'react'
 import { spanOf, type Dates, type Span } from '../dates'
 import { cropMonths } from '../crops'
-import type { LayerView } from '../hooks/useClimateLayer'
 import { cropWeather, useWeather, WEATHER_LAYERS, weatherMonths } from '../hooks/useWeather'
 import { usePlaceName } from '../hooks/usePlaceName'
 import { MY_PLACE, placeTitle, REGIONS, type Place } from '../places'
-import type { LayerKey, SideTab } from '../types'
+import type { SideTab } from '../types'
 import { CountryCrops, PHOTO_CREDITS, PlaceCrops, type OpenGuide } from './CropsPanel'
 import { LoadingStatus, Sk } from './Parts'
 import { CountryWeather, PlaceWeather } from './WeatherPanel'
@@ -18,16 +17,12 @@ type Props = {
   wv: Span /* the months the rain chart shows: the dates, and more on demand */
   onMore?: () => void /* shows more months; missing at the furthest month */
   loading: boolean
-  layer: LayerKey | null
-  onTile: (l: LayerKey) => void
   onOpenGuide: OpenGuide
   onOpenReport: (from: HTMLElement) => void
   onClose: () => void
   inert: boolean
   leaving: boolean /* on phones: sliding out to the right; onLeft once it's gone */
   onLeft: () => void
-  view: LayerView | null /* the map layer showing, for its colour key under its tile */
-  dock: ReactNode /* pinned at the foot: the month on the map and the time bar */
 }
 
 /* the loading shapes: the same for Weather and Crops, so switching tabs doesn't jump */
@@ -45,7 +40,7 @@ function SkeletonBody() {
 }
 
 /* the sidebar: Weather or Crops, for the chosen place or the whole country */
-export function Sidebar({ tab, place, dates, wv, onMore, loading: waiting, layer, onTile, onOpenGuide, onOpenReport, onClose, inert, leaving, onLeft, view, dock }: Props) {
+export function Sidebar({ tab, place, dates, wv, onMore, loading: waiting, onOpenGuide, onOpenReport, onClose, inert, leaving, onLeft }: Props) {
   const w = spanOf(dates)
   const weather = tab === 'weather'
   /* both tabs' numbers: the same NASA and forecast data as the map, at the place or across the regions
@@ -56,8 +51,8 @@ export function Sidebar({ tab, place, dates, wv, onMore, loading: waiting, layer
   const ownName = usePlaceName(place?.name === MY_PLACE ? place : null)
   const title = !place ? 'Philippines' : place.name === MY_PLACE ? ownName ?? place.sub : placeTitle(place)
   const loading = waiting || wx.status === 'loading'
-  /* the template redraws the whole body on these changes: open folds close and pressed states snap */
-  const redraw = weather ? 'weather:' + layer : 'crops'
+  /* the template redraws the whole body on a tab change: open folds close */
+  const redraw = weather ? 'weather' : 'crops'
   return (
     <aside className="sb" id="sb" aria-labelledby="sb-t" inert={inert} data-leaving={leaving ? '' : undefined} onAnimationEnd={(e) => {
       if (leaving && e.target === e.currentTarget) onLeft()
@@ -82,11 +77,10 @@ export function Sidebar({ tab, place, dates, wv, onMore, loading: waiting, layer
         <div id="sb-body" aria-busy={loading || undefined}>
           {loading ? <><LoadingStatus /><SkeletonBody /></>
             : wx.status === 'error' ? <section><p className="k" role="alert">Couldn&rsquo;t load NASA&rsquo;s numbers. Check the connection, then close and reopen the sidebar.</p></section>
-            : <Fragment key={redraw}>{weather ? (place ? <PlaceWeather place={place} wx={wx} w={w} wv={wv} onMore={onMore} dates={dates} layer={layer} view={view} onTile={onTile} /> : <CountryWeather wx={wx} w={w} wv={wv} onMore={onMore} dates={dates} layer={layer} view={view} onTile={onTile} />)
+            : <Fragment key={redraw}>{weather ? (place ? <PlaceWeather place={place} wx={wx} w={w} wv={wv} onMore={onMore} dates={dates} /> : <CountryWeather wx={wx} w={w} wv={wv} onMore={onMore} dates={dates} />)
             : <section className="crops">{place ? <PlaceCrops place={place} wx={cropWeather(wx)} w={w} onOpen={onOpenGuide} /> : <CountryCrops wx={cropWeather(wx)} onOpen={onOpenGuide} />}</section>}</Fragment>}
         </div>
       </div>
-      <div className="sb-t">{dock}</div>
       {place && !loading && (
         <div className="sb-f" id="sb-f">
           <button className="rp-open" id="rp-open" type="button" onClick={(e: MouseEvent<HTMLButtonElement>) => onOpenReport(e.currentTarget)}>

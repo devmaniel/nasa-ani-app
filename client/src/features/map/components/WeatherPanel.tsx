@@ -14,8 +14,6 @@ import { dayWord, greenWord, groundLine, latelyLines, treesLine, type FieldPictu
 import { capFirst, isDim, isHumid, monthsText, runs } from '../report'
 import { GROUPS, REGIONS, type Place } from '../places'
 import type { IconType, LayerKey } from '../types'
-import type { LayerView } from '../hooks/useClimateLayer'
-import { LayerLegend } from './LayerLegend'
 import { RainBars } from './RainBars'
 import { Level, Meter } from './Parts'
 
@@ -23,9 +21,8 @@ const RAIN_HEADROOM = 1.25
 
 /* a month of one layer, averaged over the points: its value, NASA's usual, and where the value comes from */
 type Row = { m: number; v: number; usual: number; kind: Kind }
-type LayerProps = { layer: LayerKey | null; view: LayerView | null; onTile: (l: LayerKey) => void }
 /* wv: the months the rain chart shows (the dates, and more on demand); onMore: shows more, missing at the furthest month */
-type PanelProps = LayerProps & { wx: Weather; w: Span; wv: Span; onMore?: () => void; dates: Dates }
+type PanelProps = { wx: Weather; w: Span; wv: Span; onMore?: () => void; dates: Dates }
 
 const range = (a: number, b: number) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i)
 /* measured or forecast, not just NASA's usual */
@@ -103,23 +100,20 @@ function Summary({ rain, w, dates, scope }: { rain: Row[]; w: Span; dates: Dates
   )
 }
 
-/* the tile showing on the map has its colour key right under it, across the row */
-function Tile({ l, ic: Ic, label, layer, view, onTile, children }: LayerProps & { l: LayerKey; ic: IconType; label: string; children: ReactNode }) {
+/* a reading, in its layer's colour; only shows numbers (the chips on the map switch the layers) */
+function Tile({ l, ic: Ic, label, children }: { l: LayerKey; ic: IconType; label: string; children: ReactNode }) {
   return (
-    <>
-      <button className="tile" type="button" data-tile={l} data-layer={l} aria-pressed={layer === l} onClick={() => onTile(l)}>
-        <span className="tl"><Ic className="i" aria-hidden />{label}</span>
-        {children}
-      </button>
-      {view?.layer === l && <LayerLegend view={view} />}
-    </>
+    <div className="tile" data-tile={l} data-layer={l}>
+      <span className="tl"><Ic className="i" aria-hidden />{label}</span>
+      {children}
+    </div>
   )
 }
 
-/* one tile per map layer (rain, heat, soil, humidity, sun, plants, fields) over the months with data, for one place or the average of the regions;
-   a tile shows its layer. green: NASA VIIRS's plant greenness at one place; fields: the newest clear field photo there;
+/* one tile per map layer (rain, heat, soil, humidity, sun, plants, fields) over the months with data, for one place or the average of the regions.
+   green: NASA VIIRS's plant greenness at one place; fields: the newest clear field photo there;
    air: NASA POWER's usual humidity and sunlight there, for the humid and cloudy months (each null for the country or while it loads) */
-function Tiles({ wx, pts, rain, w, green, fields, air, ...lp }: LayerProps & {
+function Tiles({ wx, pts, rain, w, green, fields, air }: {
   wx: Weather; pts: Point[]; rain: Row[]; w: Span; green: Lately['green']; fields: FieldPicture | null; air: AirUsual | null
 }) {
   const rr = withData(rain)
@@ -148,35 +142,35 @@ function Tiles({ wx, pts, rain, w, green, fields, air, ...lp }: LayerProps & {
     <>
       <p className="kick">{kick}</p>
       <div className="tiles">
-        <Tile l="rain" ic={Cloud} label="Rain" {...lp}>
+        <Tile l="rain" ic={Cloud} label="Rain">
           <span className="tv num">{Math.round(r)} <small>mm a month</small></span>
           <Meter v={pct(r / top)} u={pct(usual / top)} />
           <span className="tc num">Usual {Math.round(usual)} mm · {real ? rainWord(r / usual) : 'no data yet'}</span>
         </Tile>
-        <Tile l="heat" ic={Sun} label="Heat" {...lp}>
+        <Tile l="heat" ic={Sun} label="Heat">
           <span className="tv num">{t.toFixed(1)} <small>°C</small></span>
           <span className="tc">{hr.some(isReal) ? heatWord(t - tu) : 'The usual · no data yet'}</span>
         </Tile>
-        <Tile l="soil" ic={TbRipple} label="Soil now" {...lp}>
+        <Tile l="soil" ic={TbRipple} label="Soil now">
           <span className="tv">{soil ? SOIL_WORDS[level] : '–'} {soil && <small className="num">{Math.round(soil.v * 100)}% wet</small>}</span>
           <Level n={level} />
           <span className="tc">{soil?.kind === 'usual' ? 'Water in the ground: NASA\'s usual for ' + MON[M0 % 12] : 'Water in the ground: NASA, with the forecast rain'}</span>
         </Tile>
-        <Tile l="humid" ic={Droplets} label="Humidity" {...lp}>
+        <Tile l="humid" ic={Droplets} label="Humidity">
           <span className="tv num">{Math.round(h)}% <small>humidity</small></span>
           <span className="tc num">{ur.some(isReal) ? humidWord(h - hu) + ' · usual ' + Math.round(hu) + '%' : 'The usual · no data yet'}</span>
           {air && <span className="tc num">{humid.length ? 'Humid, fungus spreads easily: ' + humid.join(', ') : 'No very humid months in your dates'}</span>}
         </Tile>
-        <Tile l="sun" ic={CloudSun} label="Sun" {...lp}>
+        <Tile l="sun" ic={CloudSun} label="Sun">
           <span className="tv num">{sun.toFixed(1)} <small>MJ/m² a day</small></span>
           <span className="tc num">{sr.some(isReal) ? sunWord(sun / su) + ' · usual ' + su.toFixed(1) : 'The usual · no data yet'}</span>
           {air && <span className="tc num">{dim.length ? 'Less sun, slower growth: ' + dim.join(', ') : 'Plenty of sun through your dates'}</span>}
         </Tile>
-        <Tile l="plants" ic={Sprout} label="Plants now" {...lp}>
+        <Tile l="plants" ic={Sprout} label="Plants now">
           <span className="tv">{green ? greenWord(green.v) : 'On the map'} {green && <small className="num">NDVI {green.v.toFixed(2)}</small>}</span>
           <span className="tc">{green ? 'NASA VIIRS, the 8 days to ' + dayWord(green.day) + ' · the map: NASA MODIS' : 'NASA’s satellite picture of how green the land is'}</span>
         </Tile>
-        <Tile l="fields" ic={LandPlot} label="Fields" {...lp}>
+        <Tile l="fields" ic={LandPlot} label="Fields">
           <span className="tv num">{fields ? dayWord(fields.day) : one ? 'On the map' : 'Pick a place'} {fields && <small>newest clear photo</small>}</span>
           <span className="tc num">
             {fields ? fields.name + ' · ' + Math.round(fields.cloud) + '% cloud · NASA HLS' : one ? 'The newest clear photo of the fields, from Landsat or Sentinel-2' : 'To see the newest clear photo of your fields'}
@@ -225,7 +219,7 @@ function LatelyTile({ lately }: { lately: Lately | null }) {
 }
 
 /* the season card, the tiles and the rain chart for some points */
-function Panel({ pts, scope, wx, w, wv, onMore, dates, ...lp }: PanelProps & { pts: Point[]; scope: string }) {
+function Panel({ pts, scope, wx, w, wv, onMore, dates }: PanelProps & { pts: Point[]; scope: string }) {
   const bars = rowsOf(wx, 'rain', pts, wv.a, barsEnd(wv))
   const rain = bars.filter((r) => r.m <= w.b)
   const one = pts.length === 1 ? pts[0] : null
@@ -235,7 +229,7 @@ function Panel({ pts, scope, wx, w, wv, onMore, dates, ...lp }: PanelProps & { p
     <>
       <section><Summary rain={rain} w={w} dates={dates} scope={scope} /></section>
       <section>
-        <Tiles wx={wx} pts={pts} rain={rain} w={w} green={space.lately?.green ?? null} fields={space.fields} air={air} {...lp} />
+        <Tiles wx={wx} pts={pts} rain={rain} w={w} green={space.lately?.green ?? null} fields={space.fields} air={air} />
         <LatelyTile lately={space.lately} />
         {one && <LandTile land={wx.land(one)} ground={space.ground} />}
         <RainBars rows={bars.map((r) => ({ m: r.m, rain: isReal(r) ? r.v : null, usual: r.usual, kind: r.kind }))} w={wv} />
