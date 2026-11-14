@@ -2,6 +2,13 @@ import type { Point } from './climate'
 
 /* A place picked on this visit. w: how many degrees wide the map shows when it flies there */
 export type Place = Point & { name: string; sub: string; w: number }
+/* the name of the person's own location until the lookup names its town */
+export const MY_PLACE = 'Your location'
+/* the panel's title for a place: "Carmona, Cavite" (the name and the first part of the search's line under it), or the name alone */
+export function placeTitle(p: Place) {
+  const area = p.sub.split(',')[0].trim()
+  return area && area !== 'Philippines' && area !== p.name ? p.name + ', ' + area : p.name
+}
 /* A place the search can find */
 export type SearchPlace = Point & { n: string; k: 'Region' | 'Province' | 'City'; w: number }
 

@@ -26,6 +26,14 @@ export function rainWord(r: number) {
 export function heatWord(d: number) {
   return Math.abs(d) < 0.2 ? 'About usual' : Math.abs(d).toFixed(1) + '° ' + (d > 0 ? 'warmer' : 'cooler') + ' than usual'
 }
+/* d: humidity minus the usual, in % */
+export function humidWord(d: number) {
+  return Math.abs(d) < 3 ? 'About usual' : (d > 0 ? 'Damper' : 'Drier') + ' air than usual'
+}
+/* r: sunlight against the usual */
+export function sunWord(r: number) {
+  return r < 0.9 ? 'Cloudier than usual' : r > 1.1 ? 'Sunnier than usual' : 'About usual'
+}
 export const SOIL_WORDS = ['Dry', 'Moist', 'Wet']
 /* NASA's root-zone wetness (0 dry to 1 soaked): under SOIL_MOIST is Dry, from SOIL_WET up is Wet (where the map turns green) */
 const SOIL_MOIST = 0.5

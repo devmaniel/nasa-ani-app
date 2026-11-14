@@ -13,7 +13,7 @@
   section[data-name="Map"] .rp-ch-box .rp-ch{margin-top:0}
   /* the box's title sits on its edge, in ink */
   section[data-name="Map"] .rp-ch-box .rp-ch .cap{padding:0;font-size:15px;font-weight:600;color:var(--on)}
-  /* the Lately (from space), Land and Air & sun tiles: full width under the four weather tiles;
+  /* the Lately (from space) and Land tiles: full width under the weather tiles;
      they have no map layer, so they don't react to the pointer */
   section[data-name="Map"] .tile.static{min-height:0;margin-top:8px}
   section[data-name="Map"] .tile.static:hover{background:var(--milk)}
@@ -23,15 +23,36 @@
   section[data-name="Map"] [data-layer="sun"]{--lc:#e09a00;--lt:#fdf0c4}
   /* the Fields map photo (Landsat, Sentinel-2) */
   section[data-name="Map"] [data-layer="fields"]{--lc:#5b7a3a;--lt:#e3ecd6}
+  /* seven weather tiles in two columns: Fields, the last, takes the whole row */
+  section[data-name="Map"] .tiles .tile[data-tile="fields"]{grid-column:1/-1;min-height:0}
   section[data-name="Map"] .tile.land{--lc:var(--brown)}
-  section[data-name="Map"] .tile.air{--lc:var(--rain)}
   section[data-name="Map"] .tile.lately{--lc:var(--green)}
   /* the report's "Right now": the last days from space under the season row, one line each */
   section[data-name="Map"] .rp-lately{display:grid;gap:8px;margin-top:14px;padding:0;list-style:none;font-size:13px;color:var(--on-mute)}
   section[data-name="Map"] .rp-lately li{display:flex;gap:8px}
   section[data-name="Map"] .rp-lately li svg.i{flex:none;margin-top:2px;color:var(--green)}
-  /* the land tag on a crop row, tinted by how well the land suits the crop */
-  section[data-name="Map"] .tag.land{display:block;width:max-content;margin:4px 0 0;color:var(--tone);background:color-mix(in srgb,var(--tone) 12%,transparent)}
+  /* a crop row's 1–5 rating, at its foot: five segments, as many lit as the rating, in its band's colour */
+  section[data-name="Map"] .crh .rate{grid-column:1/-1;display:flex;align-items:center;gap:10px;color:var(--tone)}
+  section[data-name="Map"] .rate-bar{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+  section[data-name="Map"] .rate-bar i{height:4px;border-radius:3px;background:var(--well)}
+  section[data-name="Map"] .rate-bar i[data-on]{background:var(--tone)}
+  /* a crop row: no arrow; the whole row tints on hover to show it opens */
+  section[data-name="Map"] .crh{grid-template-columns:minmax(0,1fr);width:calc(100% + 20px);margin:0 -10px;padding:14px 10px;border-radius:12px;cursor:pointer;transition:background-color 150ms ease-out}
+  section[data-name="Map"] .crh:hover{background:var(--hover)}
+  /* the crop's photo on the left, a round thumbnail; the name, the regions line and the rating beside it */
+  section[data-name="Map"] .crh{display:flex;align-items:center;gap:12px}
+  section[data-name="Map"] .cph{flex:none;width:56px;height:56px;border-radius:999px;object-fit:cover;background:var(--well)}
+  section[data-name="Map"] .crb{flex:1;min-width:0;display:grid;gap:6px}
+  /* the name, big enough to read outdoors, with the verdict in words at the right, in the group's colour */
+  section[data-name="Map"] .crh .cn{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  section[data-name="Map"] .crh .cn b{font-size:16px}
+  section[data-name="Map"] .crh .vd{flex:none;font-size:12px;font-weight:700;color:var(--tone)}
+  section[data-name="Map"] .crh .when{font-size:13px;font-weight:500;color:var(--frost-ink)}
+  /* the groups: Plant now, With care, Wait, each with a coloured heading and how many crops it holds */
+  section[data-name="Map"] .crg+.crg{margin-top:20px}
+  section[data-name="Map"] .crg-h{display:flex;align-items:center;gap:8px;margin:0 0 2px;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--tone)}
+  section[data-name="Map"] .crg-h::before{content:"";width:8px;height:8px;border-radius:999px;background:var(--tone)}
+  section[data-name="Map"] .crg-h .num{padding:0 7px;border-radius:999px;background:color-mix(in srgb,var(--tone) 14%,transparent);font-size:11px}
   /* a weather tile shown on the map keeps its tint, without the "On map" badge */
   section[data-name="Map"] .tile[aria-pressed="true"] .tl::after{content:none}
   /* the 2D/3D switch on the map's button strip: its label is text, not an icon */
@@ -40,8 +61,10 @@
   /* the picked place's pin: a green drop with a white rim and centre; its tip (bottom centre) is the place */
   section[data-name="Map"] .pin{width:28px;height:31px;filter:drop-shadow(0 3px 6px rgba(16,24,20,.28))}
   section[data-name="Map"] .pin::before{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;background:var(--green);border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
-  /* the map layer's key under the chips: month, how sure, colour bands with their lower values, the source */
-  section[data-name="Map"] .lkey{position:absolute;top:60px;left:12px;width:max-content;max-width:min(340px,calc(100% - 24px));padding:10px 12px;border-radius:14px;font-size:12px;line-height:1.4;color:var(--on)}
+  /* the map layer's key, across the row under its weather tile: month, how sure, colour bands with their lower values, the source;
+     dense packing lets the next tile fill the gap beside the picked one */
+  section[data-name="Map"] .tiles{grid-auto-flow:dense}
+  section[data-name="Map"] .lkey{grid-column:1/-1;padding:10px 12px;border-radius:14px;background:var(--sand-150);border:1px solid var(--on-line);font-size:12px;line-height:1.4;color:var(--on)}
   section[data-name="Map"] .lk-t{font-size:13px}
   section[data-name="Map"] .lk-bar{display:flex;gap:2px;margin:8px 0 6px;padding:0;list-style:none}
   section[data-name="Map"] .lk-bar li{flex:1;min-width:40px;padding-top:12px;position:relative;font-size:11px;color:var(--on-mute);font-variant-numeric:tabular-nums}
@@ -56,9 +79,93 @@
   section[data-name="Map"] .tzones .z[data-usual]{background-image:repeating-linear-gradient(90deg,transparent 0 3px,rgba(255,255,255,.7) 3px 5px)}
   section[data-name="Map"] .tlabels span{left:0;right:0;text-overflow:ellipsis}
   /* over the time bar: the month has no real data (no forecast this far ahead, not measured yet); the map then shows the usual */
-  section[data-name="Map"] .nofc{max-width:100%;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;color:var(--on)}
+  section[data-name="Map"] .nofc{justify-self:start;max-width:100%;padding:6px 12px;border-radius:999px;background:var(--sand-50);font-size:12px;font-weight:600;color:var(--on)}
   section[data-name="Map"] .pin::after{content:"";position:absolute;left:10px;top:10px;width:8px;height:8px;border-radius:50%;background:#fff}
   /* the report's small map: a still MapLibre view, so the box sets its own shape */
   section[data-name="Map"] .rp-mp{position:relative;aspect-ratio:3/2;height:auto}
   section[data-name="Map"] .rp-mp .pin{position:absolute}
+
+  /* ---- map first: the map always fills the screen; the header floats on it and the panel slides over it ---- */
+  section[data-name="Map"]{--rl:0px;--slide:280ms cubic-bezier(.22,.8,.24,1);--frost-ink:rgba(8,9,10,.72);--frost:rgba(255,255,255,.78);--frost-line:rgba(10,11,15,.1);--frost-shadow:0 4px 16px rgba(16,24,20,.14)}
+  /* frosted glass: the search box, the dates and menu buttons, and the map tools */
+  section[data-name="Map"] .search .sbox,section[data-name="Map"] .mbtn,section[data-name="Map"] .rg{background:var(--frost);border:1px solid var(--frost-line);box-shadow:var(--frost-shadow);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
+  section[data-name="Map"] .search .sbox:focus-within{background:var(--milk);box-shadow:var(--frost-shadow),0 0 0 2px rgba(10,11,15,.2)}
+
+  /* the header: no bar; the logo and, right beside it, a short search float on the map's top left */
+  section[data-name="Map"] .top{right:auto;height:auto;padding:var(--gap);background:none;border-bottom:0;pointer-events:none}
+  section[data-name="Map"] .top>*{pointer-events:auto}
+  section[data-name="Map"] .search{flex:none;width:320px;max-width:none;margin:0}
+  /* Crops and Weather: two round buttons on the map's top right, gliding left of the panel while it's open;
+     the one showing has a green icon, the glass never changes */
+  section[data-name="Map"] .tabsf{position:fixed;z-index:15;top:var(--gap);right:var(--gap);display:flex;flex-direction:column;gap:8px;transition:right var(--slide)}
+  section[data-name="Map"][data-sb] .tabsf{right:calc(var(--sw) + var(--gap) * 2)}
+  section[data-name="Map"] .mbtn{position:relative;width:44px;height:44px;display:grid;place-items:center;border-radius:999px;color:var(--frost-ink);transition:transform 150ms ease-out,color 150ms ease-out}
+  section[data-name="Map"] .mbtn svg.i{width:20px;height:20px}
+  section[data-name="Map"] .mbtn:hover{color:var(--on)}
+  section[data-name="Map"] .mbtn[aria-pressed="true"]{color:var(--green)}
+  section[data-name="Map"] .mbtn:active{transform:scale(.94)}
+  section[data-name="Map"] .mbtn .tip{position:absolute;right:calc(100% + 10px);top:50%;transform:translate(4px,-50%);padding:6px 10px;border-radius:8px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 150ms ease-out,transform 150ms ease-out}
+  section[data-name="Map"] .mbtn:hover .tip,section[data-name="Map"] .mbtn:focus-visible .tip{opacity:1;transform:translate(0,-50%)}
+  /* the full report covers the map: the header gets its bar back above it */
+  section[data-name="Map"][data-rp] .top{background:var(--milk);border-bottom:1px solid var(--on-line)}
+
+  /* the map, its controls and its loading shimmer fill the whole screen, panel or not */
+  section[data-name="Map"] .stage,section[data-name="Map"] .mapui,section[data-name="Map"] .mapload,
+  section[data-name="Map"][data-sb] .stage,section[data-name="Map"][data-sb] .mapui,section[data-name="Map"][data-sb] .mapload{top:0;right:0}
+  section[data-name="Map"] .mapui{box-shadow:none}
+  section[data-name="Map"] .hint{top:calc(var(--top) + 12px)}
+
+  /* the panel: a full-height card over the map's right side; it slides in from the right, and back out before it closes */
+  section[data-name="Map"] .sb{--sb-in:20px;animation:sb-slide-in var(--slide);top:var(--gap);right:var(--gap);bottom:var(--gap);width:var(--sw);overflow:hidden;border-radius:16px;border:1px solid var(--on-line);box-shadow:var(--shadow)}
+  section[data-name="Map"] .sb[data-leaving]{animation:sb-slide-out 220ms cubic-bezier(.4,0,1,1) forwards}
+  @keyframes sb-slide-in{from{transform:translateX(calc(100% + 32px))}to{transform:none}}
+  @keyframes sb-slide-out{from{transform:none}to{transform:translateX(calc(100% + 32px))}}
+  /* its head: Crops or Weather, the place's name small beside it on the same line; ⓘ on the right opens the sources */
+  section[data-name="Map"] .sb-h{gap:8px;padding:16px var(--sb-in);align-items:center}
+  section[data-name="Map"] .sb-hd{display:flex;align-items:baseline;gap:8px}
+  section[data-name="Map"] .sb-hd .k{min-width:0;margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  section[data-name="Map"] .srcs{position:relative;flex:none}
+  section[data-name="Map"] .srcs summary{list-style:none;cursor:pointer}
+  section[data-name="Map"] .srcs summary::-webkit-details-marker{display:none}
+  section[data-name="Map"] .srcs[open] summary{color:var(--on)}
+  section[data-name="Map"] .srcs-p{position:absolute;z-index:3;top:calc(100% + 6px);right:0;width:260px;padding:10px 12px;border-radius:12px;background:var(--milk);border:1px solid var(--on-line);box-shadow:var(--shadow);font-size:12px;line-height:1.45;color:var(--on-mute)}
+  section[data-name="Map"] .srcs-p b{display:block;margin-bottom:4px;color:var(--on)}
+  section[data-name="Map"] .srcs-p{max-height:60vh;overflow:auto}
+  section[data-name="Map"] .srcs-ph{display:block;margin-top:8px}
+
+  /* the panel's foot: the month on the map and the time bar, always in view while the panel scrolls */
+  section[data-name="Map"] .sb-t{flex:none;display:grid;gap:8px;padding:12px var(--sb-in) 8px;border-top:1px solid var(--on-line);background:var(--milk)}
+  section[data-name="Map"] .sb-t:empty{display:none}
+  section[data-name="Map"] .sb-t .tbar{grid-template-columns:40px minmax(0,1fr);gap:2px 12px;padding:0}
+  section[data-name="Map"] .sb-t .tread{grid-row:1;grid-column:1/-1;text-align:left}
+  /* more months, on demand, under the rain chart and the time bar */
+  section[data-name="Map"] .more{justify-self:start;display:inline-flex;align-items:center;height:32px;margin-top:10px;padding:0 14px;border-radius:999px;border:1px solid var(--on-line);font-size:12px;font-weight:600;transition:background-color 150ms ease-out}
+  section[data-name="Map"] .sb-t .more{margin-top:0}
+  section[data-name="Map"] .more:hover{background:var(--hover)}
+
+  /* the map tools: one frosted column at the bottom right, over the map's credits; left of the panel while it's open */
+  section[data-name="Map"] .rail{right:var(--gap);bottom:40px;transition:right var(--slide)}
+  section[data-name="Map"][data-sb] .rail{right:calc(var(--sw) + var(--gap) * 2)}
+  section[data-name="Map"] .rg{gap:2px;padding:4px;border-radius:999px}
+  section[data-name="Map"] .rg .rb{width:40px;height:40px}
+  /* the tools keep their glass on hover; only the icon darkens */
+  section[data-name="Map"] .rg .rb{color:var(--frost-ink)}
+  section[data-name="Map"] .rb:hover:not(:disabled){background:none;color:var(--on)}
+  section[data-name="Map"] .rg .sep{flex:none;width:20px;height:1px;margin:4px auto;background:var(--frost-line)}
+  section[data-name="Map"] .maplibregl-ctrl-bottom-right{transition:right var(--slide)}
+  section[data-name="Map"][data-sb] .maplibregl-ctrl-bottom-right{right:calc(var(--sw) + var(--gap))}
+  /* the map credits' ⓘ: centred under the tools column (50 px wide), pinned to the box's bottom so opening the text doesn't move it */
+  section[data-name="Map"] .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact{margin:0 calc(var(--gap) + 13px) 10px 0}
+  section[data-name="Map"] .maplibregl-ctrl-attrib-button{top:auto;bottom:0;right:0}
+
+  /* phones: the panel slides in from the right and fills the screen, over the header; ✕ slides it back out */
+  @media (max-width:720px){
+    section[data-name="Map"] .top{right:0;padding-right:calc(44px + var(--gap) * 2)}
+    section[data-name="Map"] .search{flex:1;width:auto;min-width:0}
+    section[data-name="Map"] .sb{z-index:20;inset:0;width:auto;height:auto;max-height:none;border:0;border-radius:0;box-shadow:none}
+    section[data-name="Map"][data-sb] .rail{right:var(--gap)}
+    section[data-name="Map"][data-sb] .tabsf{right:var(--gap)}
+    section[data-name="Map"] .mbtn .tip{display:none}
+    section[data-name="Map"][data-sb] .maplibregl-ctrl-bottom-right{right:0}
+  }
 }

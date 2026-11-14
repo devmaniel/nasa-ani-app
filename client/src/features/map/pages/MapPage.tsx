@@ -2,18 +2,17 @@ import { Cloud, Sprout, type LucideIcon } from 'lucide-react'
 import type { MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import { CropWindow } from '../components/CropWindow'
-import type { CropFilter } from '../components/CropsPanel'
-import { DatesPanel } from '../components/DatesPanel'
 import { FullReport } from '../components/FullReport'
+import { NoDataBadge } from '../components/LayerLegend'
 import { MapControls, type Hint } from '../components/MapControls'
 import { MapStage } from '../components/MapStage'
 import { Sidebar } from '../components/Sidebar'
 import { TimeBar } from '../components/TimeBar'
 import { TopBar } from '../components/TopBar'
-import { DEFAULT_MONTHS, lengthEnd, spanOf, TODAY, type Dates } from '../dates'
+import { AHEAD_MONTHS, DEFAULT_MONTHS, lengthEnd, M0, spanOf, TODAY, type Dates } from '../dates'
 import { useClimateLayer } from '../hooks/useClimateLayer'
 import { useLoading } from '../hooks/useLoading'
-import { coords, SPOT_W, type Place } from '../places'
+import { coords, MY_PLACE, SPOT_W, type Place } from '../places'
 import type { LayerKey, SideTab } from '../types'
 import './map.css'
 import './map-changes.css'
@@ -25,7 +24,11 @@ const MAPLOAD_MS = 700
 const STEP_MS = 1000
 const LOC_TIMEOUT_MS = 10000
 const LOC_MAX_AGE_MS = 600000
-const TABS: [SideTab, LucideIcon, string][] = [['weather', Cloud, 'Weather'], ['crops', Sprout, 'Crops']]
+/* the dates everything is worked out for: a year from today; the rain chart and the time bar can show more months on demand */
+const DATES: Dates = { from: TODAY, to: lengthEnd(TODAY, DEFAULT_MONTHS) }
+const MORE_MONTHS = 12
+const TABS: [SideTab, LucideIcon, string][] = [['crops', Sprout, 'Crops'], ['weather', Cloud, 'Weather']]
+const LAST_MONTH = M0 + AHEAD_MONTHS /* the furthest the forecast and NASA's usual are shown */
 
 const isPhone = () => window.matchMedia(PHONE_QUERY).matches
 /* focus goes back to what opened a window, once the page is no longer inert */
@@ -39,13 +42,12 @@ function focusBack(ref: { current: HTMLElement | null }) {
    first, or a 3D globe) that flies to and pins the picked place; tapping a spot comes later. */
 export function MapPage() {
   const [place, setPlace] = useState<Place | null>(null)
-  const [dates, setDates] = useState<Dates>(() => ({ from: TODAY, to: lengthEnd(TODAY, DEFAULT_MONTHS) }))
   const [layer, setLayer] = useState<LayerKey | null>(null)
   const [recent, setRecent] = useState<Place[]>([])
-  const [tab, setTab] = useState<SideTab>('weather')
+  const [tab, setTab] = useState<SideTab>('crops')
   const [sideOpen, setSideOpen] = useState(() => !isPhone()) /* on phones the map comes first */
-  const [filter, setFilter] = useState<CropFilter | null>(null)
-  const [datesOpen, setDatesOpen] = useState(false)
+  const [leaving, setLeaving] = useState(false) /* the panel slides out before it closes */
+  const [more, setMore] = useState(0) /* extra months the rain chart and the time bar show, after the dates */
   const [reportOpen, setReportOpen] = useState(false)
   const [guide, setGuide] = useState<string | null>(null)
   const [frame, setFrame] = useState<number | null>(null)
@@ -61,32 +63,26 @@ export function MapPage() {
   const reportLoading = useLoading(reportToken)
   const guideLoading = useLoading(guideToken)
   const mapLoading = useLoading(0, MAPLOAD_MS)
-  const datesButtonRef = useRef<HTMLButtonElement>(null)
   const guideFrom = useRef<HTMLElement | null>(null)
   const reportFrom = useRef<HTMLElement | null>(null)
-  const w = spanOf(dates)
-  const last = w.b - w.a
-  const layerView = useClimateLayer(map, layer, w.a + (frame ?? 0), w) /* the month on the time bar, or the first of the dates */
+  const w = spanOf(DATES)
+  const wv = { a: w.a, b: Math.min(w.b + more, LAST_MONTH) } /* the months the time bar and the rain chart show */
+  const onMore = wv.b < LAST_MONTH ? () => setMore((n) => n + MORE_MONTHS) : undefined
+  const last = wv.b - wv.a
+  const layerView = useClimateLayer(map, layer, wv.a + (frame ?? 0), wv) /* the month on the time bar, or the first of the dates */
 
   const openSide = (open: boolean, t?: SideTab) => {
     if (t) setTab(t)
     setSideOpen(open)
+    setLeaving(false)
     if (open) setSideToken((n) => n + 1)
   }
   /* remember: false keeps a place out of the recent list (the person's own location: "Use my location" finds it fresh) */
   const choose = (p: Place, remember = true) => {
     setHint(null)
     setPlace(p)
-    setFilter(null)
     if (remember) setRecent((r) => [p, ...r.filter((x) => x.name !== p.name)].slice(0, RECENT_MAX))
     openSide(true)
-    setReportToken((n) => n + 1)
-  }
-  const applyDates = (d: Dates) => {
-    setDates(d)
-    setFrame(null)
-    setPlaying(false)
-    setSideToken((n) => n + 1)
     setReportToken((n) => n + 1)
   }
   const toggleLayer = (l: LayerKey) => setLayer((cur) => (cur === l ? null : l))
@@ -108,7 +104,6 @@ export function MapPage() {
   }
   const openReport = (from: HTMLElement) => {
     reportFrom.current = from
-    setDatesOpen(false)
     setPlaying(false)
     setReportOpen(true)
     setReportToken((n) => n + 1)
@@ -123,7 +118,7 @@ export function MapPage() {
       const { longitude: lon, latitude: lat } = pos.coords
       /* exactly 0, 0 (open sea off Africa) is what a browser reports when it has no real position */
       if (lon === 0 && lat === 0) return setHint({ msg: 'Couldn\'t find your location. Search a city or tap the map.', warn: true })
-      choose({ name: 'Your location', sub: coords(lon, lat), lon, lat, w: SPOT_W }, false)
+      choose({ name: MY_PLACE, sub: coords(lon, lat), lon, lat, w: SPOT_W }, false)
     }, (err) => {
       setLocating(false)
       setHint({ msg: err.code === 1 ? 'Location is blocked. Allow it in the browser, or search a city.' : 'Couldn\'t find your location. Search a city or tap the map.', warn: true })
@@ -152,72 +147,63 @@ export function MapPage() {
   useEffect(() => {
     if (!reportOpen) focusBack(reportFrom)
   }, [reportOpen])
-  /* the dates box closes on a click outside it */
-  useEffect(() => {
-    if (!datesOpen) return
-    const onDown = (e: PointerEvent) => {
-      if (e.target instanceof Element && !e.target.closest('#dp') && !e.target.closest('#dbtn')) setDatesOpen(false)
-    }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [datesOpen])
-  /* Escape closes the top-most thing: the crop window, the dates box, the report, then the sidebar on phones */
+  /* Escape closes the top-most thing: the crop window, the report, then the sidebar on phones */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (guide) return setGuide(null)
       if (e.target instanceof Element && e.target.id === 'q') return
-      if (datesOpen) {
-        setDatesOpen(false)
-        datesButtonRef.current?.focus()
-      } else if (reportOpen) setReportOpen(false)
-      else if (sideOpen && isPhone()) setSideOpen(false)
+      if (reportOpen) setReportOpen(false)
+      else if (sideOpen && isPhone()) setLeaving(true)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [guide, datesOpen, reportOpen, sideOpen])
+  }, [guide, reportOpen, sideOpen])
 
   const behind = guide !== null /* the page under the crop window */
   return (
-    <section data-name="Map" data-sb={sideOpen ? '' : undefined} data-rp={reportOpen ? '' : undefined}>
-      <TopBar
-        dates={dates} datesOpen={datesOpen} datesButtonRef={datesButtonRef} onToggleDates={() => setDatesOpen((o) => !o)}
-        recent={recent} onGo={choose} onLocate={locate} inert={behind}
-      />
-      <DatesPanel dates={dates} open={datesOpen} inert={behind} onApply={applyDates} />
-      <nav className="rl" aria-label="Sidebar" inert={behind}>
+    /* data-sb: the panel is (staying) open, so the menu button and the map tools glide left of it */
+    <section data-name="Map" data-sb={sideOpen && !leaving ? '' : undefined} data-rp={reportOpen ? '' : undefined}>
+      <TopBar recent={recent} onGo={choose} onLocate={locate} inert={behind} />
+      {/* opens and closes the panel; it floats on the map, left of the panel while it's open */}
+      {/* Crops and Weather: each opens the panel on its view; the one showing closes it */}
+      <nav className="tabsf" aria-label="Panel" inert={behind}>
         {TABS.map(([t, Ic, label]) => {
-          const lit = sideOpen && tab === t
+          const lit = sideOpen && !leaving && tab === t
           return (
-            <button key={t} className="tabb" type="button" data-tab={t} data-tip={lit ? 'Collapse' : label} aria-label={label} aria-controls="sb" aria-pressed={lit} onClick={() => openSide(!sideOpen || tab !== t, t)}>
-              <Ic className="i" />
+            <button key={t} className="mbtn" type="button" aria-controls="sb" aria-pressed={lit} aria-label={lit ? 'Close ' + label : label} onClick={() => (lit ? setLeaving(true) : openSide(true, t))}>
+              <Ic className="i" /><span className="tip" aria-hidden="true">{label}</span>
             </button>
           )
         })}
       </nav>
       {sideOpen && (
         <Sidebar
-          tab={tab} place={place} dates={dates} loading={sideLoading} layer={layer} filter={filter}
-          onTile={toggleLayer} onFilter={setFilter} onOpenGuide={openGuide} onOpenReport={openReport} onClose={() => openSide(false)} inert={behind}
+          tab={tab} place={place} dates={DATES} wv={wv} onMore={onMore} loading={sideLoading} layer={layer}
+          onTile={toggleLayer} onOpenGuide={openGuide} onOpenReport={openReport} onClose={() => setLeaving(true)} inert={behind}
+          view={layerView}
+          leaving={leaving} onLeft={() => openSide(false)}
+          dock={tab === 'weather' && (
+            <>
+              {layerView && <NoDataBadge view={layerView} />}
+              {last >= 1 && (
+                <TimeBar dates={DATES} w={wv} frame={frame} playing={playing} strip={layerView?.strip ?? null} onPlay={play} onScrub={(k) => {
+                  showFrame(k)
+                  setPlaying(false)
+                }} />
+              )}
+              {onMore && <button className="more" type="button" onClick={onMore}>Show {MORE_MONTHS} more months</button>}
+            </>
+          )}
         />
       )}
       <MapStage place={place} is3d={is3d} onMap={setMap} inert={behind} />
       <div className="mapload" id="mapload" aria-hidden="true" data-done={mapLoading ? undefined : ''} />
-      <MapControls
-        layer={layer} onLayer={toggleLayer} locating={locating} onLocate={locate} hint={hint} inert={behind}
-        map={map} is3d={is3d} onToggle3d={() => setIs3d((v) => !v)} layerView={layerView}
-      >
-        {last >= 1 && (
-          <TimeBar dates={dates} w={w} frame={frame} playing={playing} strip={layerView?.strip ?? null} onPlay={play} onScrub={(k) => {
-            showFrame(k)
-            setPlaying(false)
-          }} />
-        )}
-      </MapControls>
+      <MapControls locating={locating} onLocate={locate} hint={hint} inert={behind} map={map} is3d={is3d} onToggle3d={() => setIs3d((v) => !v)} />
       {place && (
-        <FullReport open={reportOpen} place={place} dates={dates} loading={reportLoading} onBack={() => setReportOpen(false)} onShowOnMap={() => setReportOpen(false)} onOpenGuide={openGuide} inert={behind} />
+        <FullReport open={reportOpen} place={place} dates={DATES} loading={reportLoading} onBack={() => setReportOpen(false)} onShowOnMap={() => setReportOpen(false)} onOpenGuide={openGuide} inert={behind} />
       )}
-      {guide && <CropWindow key={guideToken} crop={guide} place={place} dates={dates} loading={guideLoading} onClose={() => setGuide(null)} />}
+      {guide && <CropWindow key={guideToken} crop={guide} place={place} dates={DATES} loading={guideLoading} onClose={() => setGuide(null)} />}
     </section>
   )
 }

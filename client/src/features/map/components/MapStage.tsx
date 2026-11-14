@@ -112,7 +112,7 @@ export function MapStage({ place, is3d, onMap, inert }: Props) {
       attributionControl: false,
     })
     /* the map's credits sit in the empty top-right corner, clear of the buttons; they fold to an "i" once the map is dragged */
-    map.addControl(new AttributionControl({ compact: true }), 'top-right')
+    map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
     map.on('style.load', () => map.setProjection({ type: is3dRef.current ? 'globe' : 'mercator' }))
     map.on('load', () => {
       map.addSource('terrain', { type: 'raster-dem', tiles: [TERRAIN_TILES], encoding: 'terrarium', tileSize: TERRAIN_TILE_PX, maxzoom: TERRAIN_MAX_ZOOM })
