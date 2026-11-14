@@ -2,12 +2,12 @@ import { BookOpen, Calendar, ChevronDown, ChevronRight, Cloud, Info, ShoppingBas
 import { TbRipple } from 'react-icons/tb'
 import type { MouseEvent, ReactNode } from 'react'
 import {
-  clamp, greenAt, heatWord, pct, plantLevel, PLANT_WORDS, rainAt, rainWord, recentRain, SOIL_WORDS, soilLevel, sum, tempAt, usualRain, usualTemp, type Point,
+  clamp, heatWord, pct, rainWord, SOIL_WORDS, soilLevel, sum,
 } from '../climate'
 import { BAND, band, harvestMonth, planText, ranked, type Band, type Crop, type Fit } from '../crops'
 import { DAY_MS, M0, MON, mName, monthEnd, seasonKey, SEASON_NAME, TODAY, yearOf, type Span } from '../dates'
 import { guideOf } from '../guides'
-import { capFirst, hardestText, JOBS, SAMPLE_WEATHER, seasonEnd, seasonStart, WORK_WORD, type Alert, type Move, type WorkMark } from '../report'
+import { capFirst, hardestText, JOBS, seasonEnd, seasonStart, WORK_WORD, type Alert, type Move, type PlaceWeather, type WorkMark } from '../report'
 import type { IconType, LayerKey } from '../types'
 import type { OpenGuide } from './CropsPanel'
 import { FIT_COLOR } from '../chartColors'
@@ -29,7 +29,7 @@ function Cell({ l, ic: Ic, label, v, children }: { l: LayerKey; ic: IconType; la
 }
 
 /* right now, always today: the season and four readings in one row */
-export function NowRow({ p }: { p: Point }) {
+export function NowRow({ pw }: { pw: PlaceWeather }) {
   const k = seasonKey(M0)
   const e = seasonEnd(M0)
   const s = seasonStart(M0)
@@ -37,12 +37,9 @@ export function NowRow({ p }: { p: Point }) {
   const start = new Date(yearOf(s), s % 12, 1)
   const left = Math.round((+end - +TODAY) / DAY_MS) + 1
   const done = (+TODAY - +start) / (+end - +start)
-  const r = rainAt(p, M0)
-  const u = usualRain(p, M0)
-  const t = tempAt(p, M0)
+  const { rain: r, usualRain: u, heat: t, usualHeat } = pw.at(M0)
   const top = Math.max(r, u) * 1.25
-  const soil = soilLevel(recentRain(p, M0))
-  const green = plantLevel(greenAt(p, M0))
+  const soil = pw.soil ? soilLevel(pw.soil.v) : null
   return (
     <div className="rp-now" id="rp-now">
       <div className={'rp-cell season ' + k}>
@@ -55,9 +52,12 @@ export function NowRow({ p }: { p: Point }) {
         <Meter v={pct(r / top)} u={pct(u / top)} />
         <span className="tc num">{capFirst(rainWord(r / u))} · usual {Math.round(u)}</span>
       </Cell>
-      <Cell l="heat" ic={Sun} label="Heat" v={t.toFixed(1) + ' °C'}><span className="tc">{heatWord(t - usualTemp(p, M0))}</span></Cell>
-      <Cell l="soil" ic={TbRipple} label="Soil" v={SOIL_WORDS[soil]}><Level n={soil} /><span className="tc">From satellites</span></Cell>
-      <Cell l="plants" ic={Sprout} label="Plants" v={PLANT_WORDS[green]}><Level n={green} /><span className="tc">From satellites</span></Cell>
+      <Cell l="heat" ic={Sun} label="Heat" v={t.toFixed(1) + ' °C'}><span className="tc">{heatWord(t - usualHeat)}</span></Cell>
+      <Cell l="soil" ic={TbRipple} label="Soil" v={soil === null ? '–' : SOIL_WORDS[soil]}>
+        <Level n={soil ?? 0} />
+        <span className="tc">{pw.soil?.kind === 'usual' ? 'NASA\'s usual for ' + MON[M0 % 12] : 'NASA, with the forecast rain'}</span>
+      </Cell>
+      <Cell l="plants" ic={Sprout} label="Plants" v="On the map"><span className="tc">NASA&rsquo;s satellite picture of how green the land is</span></Cell>
     </div>
   )
 }
@@ -110,8 +110,8 @@ export function MoveList({ moves, onOpen }: { moves: Move[]; onOpen: OpenGuide }
 }
 
 /* what to plant: every crop, good ones first, each on the same calendar */
-export function CropGroups({ p, w, onOpen }: { p: Point; w: Span; onOpen: OpenGuide }) {
-  const all = ranked(SAMPLE_WEATHER, p, w)
+export function CropGroups({ pw, w, onOpen }: { pw: PlaceWeather; w: Span; onOpen: OpenGuide }) {
+  const all = ranked(pw.crop, pw.p, w)
   const a = w.a
   const b = Math.max(a + CAL_MIN_MONTHS - 1, Math.max(...all.map(harvestMonth)))
   const row = (r: Fit) => {
@@ -158,9 +158,9 @@ export function CropGroups({ p, w, onOpen }: { p: Point; w: Span; onOpen: OpenGu
 }
 
 /* the months in the dates by how good they are for planting (the farm-work table's "Plant" row) */
-export function PlantingMonths({ p, w }: { p: Point; w: Span }) {
+export function PlantingMonths({ pw, w }: { pw: PlaceWeather; w: Span }) {
   const marks: WorkMark[] = []
-  for (let m = w.a; m <= w.b; m++) marks.push(JOBS[0].at(p, m))
+  for (let m = w.a; m <= w.b; m++) marks.push(JOBS[0].at(pw, m))
   const count = (k: WorkMark) => marks.filter((x) => x === k).length
   return (
     <div className="rp-cg">
@@ -178,7 +178,7 @@ export function PlantingMonths({ p, w }: { p: Point; w: Span }) {
 }
 
 /* farm work by month: good months for each job */
-export function WorkTable({ p, w }: { p: Point; w: Span }) {
+export function WorkTable({ pw, w }: { pw: PlaceWeather; w: Span }) {
   const months: number[] = []
   for (let m = w.a; m <= w.b; m++) months.push(m)
   return (
@@ -195,7 +195,7 @@ export function WorkTable({ p, w }: { p: Point; w: Span }) {
           <tr key={j.n}>
             <th scope="row"><span><j.ic className="i" aria-hidden />{j.n}</span></th>
             {months.map((m) => {
-              const v = j.at(p, m)
+              const v = j.at(pw, m)
               return <td key={m}><i className={'rp-dot ' + v} aria-hidden="true" /><span className="sr">{mName(m)}: {WORK_WORD[v]}</span></td>
             })}
           </tr>
@@ -209,16 +209,17 @@ function Fig({ label, v, c }: { label: string; v: string; c: string }) {
   return <div className="rp-fig"><span className="tl">{label}</span><span className="tv num">{v}</span><span className="tc num">{c}</span></div>
 }
 /* your dates in numbers, against the same months in a usual year */
-export function Figures({ p, w }: { p: Point; w: Span }) {
-  const rain = sum(w.a, w.b, (m) => rainAt(p, m))
-  const usual = sum(w.a, w.b, (m) => usualRain(p, m))
+export function Figures({ pw, w }: { pw: PlaceWeather; w: Span }) {
+  const rainOf = (m: number) => pw.at(m).rain
+  const rain = sum(w.a, w.b, rainOf)
+  const usual = sum(w.a, w.b, (m) => pw.at(m).usualRain)
   const off = 1 - rain / usual
-  const heat = sum(w.a, w.b, (m) => tempAt(p, m) - usualTemp(p, m)) / (w.b - w.a + 1)
+  const heat = sum(w.a, w.b, (m) => pw.at(m).heat - pw.at(m).usualHeat) / (w.b - w.a + 1)
   let dry = w.a
   let wet = w.a
   for (let m = w.a; m <= w.b; m++) {
-    if (rainAt(p, m) < rainAt(p, dry)) dry = m
-    if (rainAt(p, m) > rainAt(p, wet)) wet = m
+    if (rainOf(m) < rainOf(dry)) dry = m
+    if (rainOf(m) > rainOf(wet)) wet = m
   }
   return (
     <div className="rp-figs" id="rp-figs">
@@ -228,8 +229,8 @@ export function Figures({ p, w }: { p: Point; w: Span }) {
         v={Math.abs(heat) < 0.2 ? 'Usual' : (heat > 0 ? '+' : '−') + Math.abs(heat).toFixed(1) + ' °C'}
         c={heat >= 0.2 ? 'Warmer than usual, on average' : heat <= -0.2 ? 'Cooler than usual, on average' : 'About usual, on average'}
       />
-      {w.a !== w.b && <Fig label="Driest month" v={mName(dry)} c={Math.round(rainAt(p, dry)) + ' mm of rain'} />}
-      {w.a !== w.b && <Fig label="Wettest month" v={mName(wet)} c={Math.round(rainAt(p, wet)) + ' mm of rain'} />}
+      {w.a !== w.b && <Fig label="Driest month" v={mName(dry)} c={Math.round(rainOf(dry)) + ' mm of rain'} />}
+      {w.a !== w.b && <Fig label="Wettest month" v={mName(wet)} c={Math.round(rainOf(wet)) + ' mm of rain'} />}
     </div>
   )
 }
