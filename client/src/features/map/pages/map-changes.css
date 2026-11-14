@@ -1,0 +1,14 @@
+/* Changes on top of the template's styles (map.css stays a byte-for-byte copy). */
+@layer page {
+  /* "Seasons in your dates" at the foot of the Your dates card: no extra room under it */
+  section[data-name="Map"] .sum details.rest summary{min-height:0;padding-top:10px}
+  /* the folds at the foot of report cards ("Show the numbers", "Not a good time"): no extra room under them */
+  section[data-name="Map"] .rp-card details.rp-rest summary{min-height:0;padding-top:12px}
+  /* the full report's month-by-month charts: each in a white card like shadcn's Card, the same space on every side */
+  section[data-name="Map"] .rp-ch-box{margin-top:18px;padding:20px;border-radius:16px;background:var(--milk);border:1px solid var(--on-line)}
+  @media (min-width:768px){section[data-name="Map"] .rp-ch-box{padding:24px}}
+  section[data-name="Map"] .rp-ch-box+.rp-ch-box{margin-top:12px}
+  section[data-name="Map"] .rp-ch-box .rp-ch{margin-top:0}
+  /* the box's title sits on its edge, in ink */
+  section[data-name="Map"] .rp-ch-box .rp-ch .cap{padding:0;font-size:15px;font-weight:600;color:var(--on)}
+}
