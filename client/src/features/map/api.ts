@@ -5,6 +5,8 @@ import { monthIndex, parseIso } from './dates'
 /* Google place search: Places API (New) through the Maps JavaScript API. The key lives in client/.env.local */
 const KEY: unknown = import.meta.env.VITE_GOOGLE_MAPS_KEY
 const REGION = 'ph' /* results lean towards the Philippines, but places anywhere can be found */
+/* only towns, cities, provinces and regions: no streets, shops or terminals that share a town's name */
+const PLACE_TYPES = ['locality', 'administrative_area_level_1', 'administrative_area_level_2', 'administrative_area_level_3', 'sublocality_level_1']
 
 export type Suggestion = { id: string; name: string; sub: string; prediction: google.maps.places.PlacePrediction }
 export type SessionToken = google.maps.places.AutocompleteSessionToken
@@ -27,7 +29,7 @@ export async function newSession(): Promise<SessionToken> {
 
 export async function suggestPlaces(input: string, sessionToken: SessionToken): Promise<Suggestion[]> {
   const { AutocompleteSuggestion } = await places()
-  const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({ input, sessionToken })
+  const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({ input, sessionToken, includedPrimaryTypes: PLACE_TYPES })
   return suggestions.flatMap(({ placePrediction: p }) =>
     p ? [{ id: p.placeId, name: p.mainText?.text ?? p.text.text, sub: p.secondaryText?.text ?? '', prediction: p }] : [],
   )
