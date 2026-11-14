@@ -98,7 +98,7 @@ export function FullReport({ open, place, dates, loading: waiting, onBack, onSho
           <>
             <div className="rp-main">
               <Card id="rp-s-now" tone="water" ic={Cloud} title="Right now" sub={<p className="num" id="rp-now-l">Today, {fmtY(TODAY)}</p>}>
-                <NowRow pw={data.pw} />
+                <NowRow pw={data.pw} green={space.lately?.green ?? null} />
                 <LatelyList lately={space.lately} />
               </Card>
               <Card id="rp-s-ahead" tone="pest" ic={Clock} title="Looking ahead" sub={<p>What stands out in your dates.</p>}>
