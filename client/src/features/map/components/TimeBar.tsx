@@ -1,9 +1,10 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import { clamp } from '../climate'
-import { mName, TODAY, yearOf, type Dates, type Span } from '../dates'
+import { MON, mName, TODAY, yearOf, type Dates, type Span } from '../dates'
 import type { Strip } from '../hooks/useClimateLayer'
 
-const YEAR_MIN_POS = 12 /* a year mark needs YEAR_MIN_POS % of room after "Today" */
+const MARK_MIN_POS = 6 /* % of the lane a month mark needs from the last one, and from "Today" */
+const MARK_STEPS = [1, 2, 3, 6, 12] /* every month, or fewer on long dates */
 
 type Props = { dates: Dates; w: Span; frame: number | null; playing: boolean; strip: Strip | null; onPlay: () => void; onScrub: (k: number) => void }
 
@@ -17,8 +18,11 @@ export function TimeBar({ dates, w, frame, playing, strip, onPlay, onScrub }: Pr
   const icon = playing ? 'pause' : atEnd ? 'replay' : 'play'
   const PlayIcon = { pause: Pause, replay: RotateCcw, play: Play }[icon]
   const label = playing ? 'Pause' : atEnd ? 'Play again' : 'Play'
-  const years: number[] = []
-  for (let i = 1; i <= last; i++) if ((w.a + i) % 12 === 0 && pos(i) >= YEAR_MIN_POS) years.push(i)
+  /* a mark under the months: "Feb", or "Jan 2027" where a year starts */
+  const step = MARK_STEPS.find((n) => (n / last) * 100 >= MARK_MIN_POS) ?? 12
+  const marks: number[] = []
+  for (let i = 1; i <= last; i++) if ((w.a + i) % step === 0 && pos(i) >= MARK_MIN_POS) marks.push(i)
+  const markText = (m: number) => MON[m % 12] + (m % 12 === 0 ? ' ' + yearOf(m) : '')
 
   return (
     <div className="tbar glass" id="tbar">
@@ -42,7 +46,7 @@ export function TimeBar({ dates, w, frame, playing, strip, onPlay, onScrub }: Pr
         />
         <div className="tticks" id="tticks" aria-hidden="true">
           <span className="today" style={{ left: 0 }}>{+dates.from === +TODAY ? 'Today' : mName(w.a)}</span>
-          {years.map((i) => <span key={i} className="num" style={{ left: pos(i) + '%' }}>{yearOf(w.a + i)}</span>)}
+          {marks.map((i) => <span key={i} className="num" style={{ left: pos(i) + '%' }}>{markText(w.a + i)}</span>)}
         </div>
       </div>
       <p className="tread num" id="tread">{frame === null ? 'Your dates' : mName(w.a + frame)}</p>
