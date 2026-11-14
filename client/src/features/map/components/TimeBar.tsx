@@ -3,7 +3,7 @@ import { clamp } from '../climate'
 import { MON, mName, TODAY, yearOf, type Dates, type Span } from '../dates'
 import type { Strip } from '../hooks/useClimateLayer'
 
-const MARK_MIN_POS = 18 /* % of the lane a month mark needs from the last one, and from "Today" (the lane is narrow, in the panel) */
+const MARK_MIN_POS = 6 /* % of the lane a month mark needs from the last one, and from "Today" */
 const MARK_STEPS = [1, 2, 3, 6, 12] /* every month, or fewer on long dates */
 
 type Props = { dates: Dates; w: Span; frame: number | null; playing: boolean; strip: Strip | null; onPlay: () => void; onScrub: (k: number) => void }

@@ -13,11 +13,11 @@
   section[data-name="Map"] .rp-ch-box .rp-ch{margin-top:0}
   /* the box's title sits on its edge, in ink */
   section[data-name="Map"] .rp-ch-box .rp-ch .cap{padding:0;font-size:15px;font-weight:600;color:var(--on)}
-  /* the Lately (from space) and Land tiles: full width under the weather tiles;
-     they have no map layer, so they don't react to the pointer */
+  /* the Lately (from space) and Land tiles: full width under the weather tiles */
   section[data-name="Map"] .tile.static{min-height:0;margin-top:8px}
-  section[data-name="Map"] .tile.static:hover{background:var(--milk)}
-  section[data-name="Map"] .tile.static:active{transform:none}
+  /* the panel's tiles only show numbers (the chips on the map switch the layers), so none reacts to the pointer */
+  section[data-name="Map"] .tile:hover{background:var(--milk)}
+  section[data-name="Map"] .tile:active{transform:none}
   /* the Humidity and Sun map layers' colours (chips, colour key) */
   section[data-name="Map"] [data-layer="humid"]{--lc:#2f9aa6;--lt:var(--seafoam-300)}
   section[data-name="Map"] [data-layer="sun"]{--lc:#e09a00;--lt:#fdf0c4}
@@ -95,18 +95,15 @@
   section[data-name="Map"] .crg-h{display:flex;align-items:center;gap:8px;margin:0 0 2px;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--tone)}
   section[data-name="Map"] .crg-h::before{content:"";width:8px;height:8px;border-radius:999px;background:var(--tone)}
   section[data-name="Map"] .crg-h .num{padding:0 7px;border-radius:999px;background:color-mix(in srgb,var(--tone) 14%,transparent);font-size:11px}
-  /* a weather tile shown on the map keeps its tint, without the "On map" badge */
-  section[data-name="Map"] .tile[aria-pressed="true"] .tl::after{content:none}
   /* the 2D/3D switch on the map's button strip: its label is text, not an icon */
   section[data-name="Map"] .rb.mode{font-size:13px;font-weight:700}
   section[data-name="Map"] .rb.mode:disabled{color:var(--on-mute)}
   /* the picked place's pin: a green drop with a white rim and centre; its tip (bottom centre) is the place */
   section[data-name="Map"] .pin{width:28px;height:31px;filter:drop-shadow(0 3px 6px rgba(16,24,20,.28))}
   section[data-name="Map"] .pin::before{content:"";position:absolute;left:2px;top:2px;width:24px;height:24px;background:var(--green);border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
-  /* the map layer's key, across the row under its weather tile: month, how sure, colour bands with their lower values, the source;
-     dense packing lets the next tile fill the gap beside the picked one */
-  section[data-name="Map"] .tiles{grid-auto-flow:dense}
-  section[data-name="Map"] .lkey{grid-column:1/-1;padding:10px 12px;border-radius:14px;background:var(--sand-150);border:1px solid var(--on-line);font-size:12px;line-height:1.4;color:var(--on)}
+  /* the map layer's key on the map's top left, under the header (the search box is 44 px tall): month, how sure,
+     colour bands with their lower values, the source */
+  section[data-name="Map"] .lkey{position:absolute;top:calc(var(--gap) + 52px);left:var(--gap);width:max-content;max-width:min(340px,calc(100% - var(--gap) * 2));padding:10px 12px;border-radius:14px;font-size:12px;line-height:1.4;color:var(--on)}
   section[data-name="Map"] .lk-t{font-size:13px}
   section[data-name="Map"] .lk-bar{display:flex;gap:2px;margin:8px 0 6px;padding:0;list-style:none}
   section[data-name="Map"] .lk-bar li{flex:1;min-width:40px;padding-top:12px;position:relative;font-size:11px;color:var(--on-mute);font-variant-numeric:tabular-nums}
@@ -121,7 +118,7 @@
   section[data-name="Map"] .tzones .z[data-usual]{background-image:repeating-linear-gradient(90deg,transparent 0 3px,rgba(255,255,255,.7) 3px 5px)}
   section[data-name="Map"] .tlabels span{left:0;right:0;text-overflow:ellipsis}
   /* over the time bar: the month has no real data (no forecast this far ahead, not measured yet); the map then shows the usual */
-  section[data-name="Map"] .nofc{justify-self:start;max-width:100%;padding:6px 12px;border-radius:999px;background:var(--sand-50);font-size:12px;font-weight:600;color:var(--on)}
+  section[data-name="Map"] .nofc{max-width:100%;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;color:var(--on)}
   section[data-name="Map"] .pin::after{content:"";position:absolute;left:10px;top:10px;width:8px;height:8px;border-radius:50%;background:#fff}
   /* the report's small map: a still MapLibre view, so the box sets its own shape */
   section[data-name="Map"] .rp-mp{position:relative;aspect-ratio:3/2;height:auto}
@@ -129,14 +126,18 @@
 
   /* ---- map first: the map always fills the screen; the header floats on it and the panel slides over it ---- */
   section[data-name="Map"]{--rl:0px;--slide:280ms cubic-bezier(.22,.8,.24,1);--frost-ink:rgba(8,9,10,.72);--frost:rgba(255,255,255,.78);--frost-line:rgba(10,11,15,.1);--frost-shadow:0 4px 16px rgba(16,24,20,.14)}
-  /* frosted glass: the search box, the dates and menu buttons, and the map tools */
-  section[data-name="Map"] .search .sbox,section[data-name="Map"] .mbtn,section[data-name="Map"] .rg{background:var(--frost);border:1px solid var(--frost-line);box-shadow:var(--frost-shadow);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
+  /* frosted glass: the search box, the menu buttons, the map tools, the layer chips with their key, and the time bar */
+  section[data-name="Map"] .search .sbox,section[data-name="Map"] .mbtn,section[data-name="Map"] .rg,
+  section[data-name="Map"] .chip,section[data-name="Map"] .lkey,section[data-name="Map"] .tbar,section[data-name="Map"] .nofc{background:var(--frost);border:1px solid var(--frost-line);box-shadow:var(--frost-shadow);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
   section[data-name="Map"] .search .sbox:focus-within{background:var(--milk);box-shadow:var(--frost-shadow),0 0 0 2px rgba(10,11,15,.2)}
 
   /* the header: no bar; the logo and, right beside it, a short search float on the map's top left */
   section[data-name="Map"] .top{right:auto;height:auto;padding:var(--gap);background:none;border-bottom:0;pointer-events:none}
   section[data-name="Map"] .top>*{pointer-events:auto}
   section[data-name="Map"] .search{flex:none;width:320px;max-width:none;margin:0}
+  /* the logo in a white pill, like the landing page's header, as tall as the search box beside it */
+  section[data-name="Map"] .mbrand{display:flex;align-items:center;height:44px;padding:0 16px;border-radius:999px;background:var(--milk);border:1px solid var(--frost-line);box-shadow:var(--frost-shadow)}
+  section[data-name="Map"] .mbrand .brand{height:26px}
   /* Crops and Weather: two round buttons on the map's top right, gliding left of the panel while it's open;
      the one showing has a green icon, the glass never changes */
   section[data-name="Map"] .tabsf{position:fixed;z-index:15;top:var(--gap);right:var(--gap);display:flex;flex-direction:column;gap:8px;transition:right var(--slide)}
@@ -156,7 +157,15 @@
   section[data-name="Map"] .stage,section[data-name="Map"] .mapui,section[data-name="Map"] .mapload,
   section[data-name="Map"][data-sb] .stage,section[data-name="Map"][data-sb] .mapui,section[data-name="Map"][data-sb] .mapload{top:0;right:0}
   section[data-name="Map"] .mapui{box-shadow:none}
+  /* the layer chips: one row right on top of the time bar, scrolling sideways when it doesn't fit; flat, no shadow
+     (2 px of room keeps the picked chip's ring from being cut off) */
+  section[data-name="Map"] .layers{position:static;max-width:100%;padding:2px}
+  section[data-name="Map"] .chip{box-shadow:none}
+  section[data-name="Map"] .chip[aria-pressed="true"]{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--lc) 45%,transparent)}
   section[data-name="Map"] .hint{top:calc(var(--top) + 12px)}
+  /* along the bottom left: the time bar, then the coordinates and scale; it ends left of the map tools (50 px wide), and of the panel while it's open */
+  section[data-name="Map"] .dock{right:calc(var(--gap) * 2 + 50px);transition:right var(--slide)}
+  section[data-name="Map"][data-sb] .dock{right:calc(var(--sw) + var(--gap) * 3 + 50px)}
 
   /* the panel: a full-height card over the map's right side; it slides in from the right, and back out before it closes */
   section[data-name="Map"] .sb{--sb-in:20px;animation:sb-slide-in var(--slide);top:var(--gap);right:var(--gap);bottom:var(--gap);width:var(--sw);overflow:hidden;border-radius:16px;border:1px solid var(--on-line);box-shadow:var(--shadow)}
@@ -176,14 +185,8 @@
   section[data-name="Map"] .srcs-p{max-height:60vh;overflow:auto}
   section[data-name="Map"] .srcs-ph{display:block;margin-top:8px}
 
-  /* the panel's foot: the month on the map and the time bar, always in view while the panel scrolls */
-  section[data-name="Map"] .sb-t{flex:none;display:grid;gap:8px;padding:12px var(--sb-in) 8px;border-top:1px solid var(--on-line);background:var(--milk)}
-  section[data-name="Map"] .sb-t:empty{display:none}
-  section[data-name="Map"] .sb-t .tbar{grid-template-columns:40px minmax(0,1fr);gap:2px 12px;padding:0}
-  section[data-name="Map"] .sb-t .tread{grid-row:1;grid-column:1/-1;text-align:left}
-  /* more months, on demand, under the rain chart and the time bar */
+  /* more months, on demand, under the rain chart */
   section[data-name="Map"] .more{justify-self:start;display:inline-flex;align-items:center;height:32px;margin-top:10px;padding:0 14px;border-radius:999px;border:1px solid var(--on-line);font-size:12px;font-weight:600;transition:background-color 150ms ease-out}
-  section[data-name="Map"] .sb-t .more{margin-top:0}
   section[data-name="Map"] .more:hover{background:var(--hover)}
 
   /* the map tools: one frosted column at the bottom right, over the map's credits; left of the panel while it's open */

@@ -3,7 +3,6 @@ import type { MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import { CropWindow } from '../components/CropWindow'
 import { FullReport } from '../components/FullReport'
-import { NoDataBadge } from '../components/LayerLegend'
 import { MapControls, type Hint } from '../components/MapControls'
 import { MapStage } from '../components/MapStage'
 import { Sidebar } from '../components/Sidebar'
@@ -179,27 +178,24 @@ export function MapPage() {
       </nav>
       {sideOpen && (
         <Sidebar
-          tab={tab} place={place} dates={DATES} wv={wv} onMore={onMore} loading={sideLoading} layer={layer}
-          onTile={toggleLayer} onOpenGuide={openGuide} onOpenReport={openReport} onClose={() => setLeaving(true)} inert={behind}
-          view={layerView}
+          tab={tab} place={place} dates={DATES} wv={wv} onMore={onMore} loading={sideLoading}
+          onOpenGuide={openGuide} onOpenReport={openReport} onClose={() => setLeaving(true)} inert={behind}
           leaving={leaving} onLeft={() => openSide(false)}
-          dock={tab === 'weather' && (
-            <>
-              {layerView && <NoDataBadge view={layerView} />}
-              {last >= 1 && (
-                <TimeBar dates={DATES} w={wv} frame={frame} playing={playing} strip={layerView?.strip ?? null} onPlay={play} onScrub={(k) => {
-                  showFrame(k)
-                  setPlaying(false)
-                }} />
-              )}
-              {onMore && <button className="more" type="button" onClick={onMore}>Show {MORE_MONTHS} more months</button>}
-            </>
-          )}
         />
       )}
       <MapStage place={place} is3d={is3d} onMap={setMap} inert={behind} />
       <div className="mapload" id="mapload" aria-hidden="true" data-done={mapLoading ? undefined : ''} />
-      <MapControls locating={locating} onLocate={locate} hint={hint} inert={behind} map={map} is3d={is3d} onToggle3d={() => setIs3d((v) => !v)} />
+      <MapControls
+        layer={layer} onLayer={toggleLayer} locating={locating} onLocate={locate} hint={hint} inert={behind}
+        map={map} is3d={is3d} onToggle3d={() => setIs3d((v) => !v)} layerView={layerView}
+      >
+        {last >= 1 && (
+          <TimeBar dates={DATES} w={wv} frame={frame} playing={playing} strip={layerView?.strip ?? null} onPlay={play} onScrub={(k) => {
+            showFrame(k)
+            setPlaying(false)
+          }} />
+        )}
+      </MapControls>
       {place && (
         <FullReport open={reportOpen} place={place} dates={DATES} loading={reportLoading} onBack={() => setReportOpen(false)} onShowOnMap={() => setReportOpen(false)} onOpenGuide={openGuide} inert={behind} />
       )}
