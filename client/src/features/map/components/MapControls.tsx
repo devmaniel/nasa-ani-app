@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Cloud, Minus, Navigation, Plus, Sprout, Sun } from 'lucide-react'
+import { ChevronDown, ChevronUp, Cloud, CloudSun, Droplets, LandPlot, Minus, Navigation, Plus, Sprout, Sun } from 'lucide-react'
 import type { MapLibreMap } from 'maplibre-gl'
 import { useEffect, useState, type ReactNode } from 'react'
 import { TbRipple } from 'react-icons/tb'
@@ -7,7 +7,9 @@ import { coords } from '../places'
 import type { IconType, LayerKey } from '../types'
 import { LayerLegend, NoDataBadge } from './LayerLegend'
 
-const CHIPS: [LayerKey, IconType, string][] = [['rain', Cloud, 'Rain'], ['heat', Sun, 'Heat'], ['soil', TbRipple, 'Soil'], ['plants', Sprout, 'Plants']]
+const CHIPS: [LayerKey, IconType, string][] = [
+  ['rain', Cloud, 'Rain'], ['heat', Sun, 'Heat'], ['soil', TbRipple, 'Soil'], ['humid', Droplets, 'Humidity'], ['sun', CloudSun, 'Sun'], ['plants', Sprout, 'Plants'], ['fields', LandPlot, 'Fields'],
+]
 
 const TILT_STEP = 15
 const SCALE_PX = 90 /* the scale bar is at most this wide */

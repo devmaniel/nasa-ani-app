@@ -1,5 +1,6 @@
 import type { Point } from './climate'
-import { M0, mName, type Span } from './dates'
+import { mName, type Span } from './dates'
+import { GAEZ_FAIR, GAEZ_GOOD } from './land'
 import { REGIONS } from './places'
 
 /* [absolute lowest, best from, best to, absolute highest] */
@@ -30,16 +31,26 @@ const LONGEST = Math.max(...CROPS.map((c) => c.months))
 /* the months the crop advice needs: planting inside the dates, growing until the longest crop's harvest */
 export const cropMonths = (w: Span) => Array.from({ length: w.b - w.a + LONGEST }, (_, i) => w.a + i)
 
-/* a month's rain (mm) and average heat (°C) at a point; null when there's no number for it */
-export type CropWeather = { rain: (p: Point, m: number) => number | null; heat: (p: Point, m: number) => number | null }
+/* a month's rain (mm) and average heat (°C) at a point, null when there's no number for it;
+   land: how well the crop suits the land there (FAO GAEZ, 0–10000), null when GAEZ has no rating for it or the point */
+export type CropWeather = {
+  rain: (p: Point, m: number) => number | null
+  heat: (p: Point, m: number) => number | null
+  land: (p: Point, crop: string) => number | null
+}
 
 export const GOOD = 0.7
 const FAIR = 0.45
 export const ISSUE = 0.9
 const MONTHS_A_YEAR = 12
+/* the land's share of the score: the weather in the dates decides most of it, the long-run land suitability the rest */
+const LAND_WEIGHT = 0.3
+/* the highest score on poor land: just under GOOD */
+const POOR_LAND_MAX = GOOD - 0.01
 
 export type Why = 'hot' | 'cold' | 'dry' | 'wet'
-export type Fit = { c: Crop; pm: number; score: number; worst: { f: number; m: number; why: Why } }
+/* land: the crop's GAEZ suitability index at the point, null without one */
+export type Fit = { c: Crop; pm: number; score: number; land: number | null; worst: { f: number; m: number; why: Why } }
 
 /* 1 inside the best range, down to 0 at the absolute limits (ECOCROP's way) */
 function within(v: number, [lo, a, b, hi]: Range) {
@@ -68,7 +79,45 @@ export function cropFit(wx: CropWeather, p: Point, c: Crop, pm: number): Fit {
     n++
     if (f < worst.f) worst = { f, m, why: hf < rf ? (t > c.heat[2] ? 'hot' : 'cold') : r < c.rain[1] / MONTHS_A_YEAR ? 'dry' : 'wet' }
   }
-  return n ? { c, pm, score: (0.6 * total) / n + 0.4 * worst.f, worst } : { c, pm, score: 0, worst: { f: 0, m: pm, why: 'dry' } }
+  const land = wx.land(p, c.n)
+  const sky = n ? (0.6 * total) / n + 0.4 * worst.f : 0
+  const lf = land === null ? usualLand(wx, p) : landFactor(land)
+  const mixed = lf === null ? sky : (1 - LAND_WEIGHT) * sky + LAND_WEIGHT * lf
+  /* land FAO rates poor for the crop is at best "Plant with care", however good the weather */
+  const score = land !== null && land < GAEZ_FAIR ? Math.min(mixed, POOR_LAND_MAX) : mixed
+  return { c, pm, score, land, worst: n ? worst : { f: 0, m: pm, why: 'dry' } }
+}
+const landFactor = (v: number) => Math.min(1, v / GAEZ_GOOD)
+/* a crop GAEZ doesn't rate is taken as doing as well on this land as the rated crops do on average,
+   so it isn't lifted above them just for having no rating; null when no crop has one here */
+function usualLand(wx: CropWeather, p: Point) {
+  const vs = CROPS.flatMap((c) => {
+    const v = wx.land(p, c.n)
+    return v === null ? [] : [landFactor(v)]
+  })
+  return vs.length ? vs.reduce((s, v) => s + v, 0) / vs.length : null
+}
+/* the land's say, from FAO GAEZ; null for a crop or a point it has no rating for */
+export function landText(r: Fit) {
+  const lb = landBand(r.land)
+  return lb && { good: 'The land here suits it well.', fair: 'The land here is only fair for it.', poor: 'The land here is poor for it.' }[lb]
+}
+/* FAO GAEZ's suitability index in the app's three bands; null without a rating */
+export function landBand(v: number | null): Band | null {
+  return v === null ? null : v >= GAEZ_GOOD ? 'good' : v >= GAEZ_FAIR ? 'fair' : 'poor'
+}
+/* the short tag on a crop row */
+export const LAND_TAG: Record<Band, string> = { good: 'Good land', fair: 'Fair land', poor: 'Poor land' }
+
+/* steep from 8% (FAO GAEZ's "moderately steep" and up), flat under 2% */
+const STEEP_PCT = 8
+const FLAT_PCT = 2
+/* what the slope (%) means for the crop (rules of thumb); null on in-between ground or without a slope */
+export function slopeText(c: Crop, pct: number | null) {
+  if (pct === null) return null
+  if (pct >= STEEP_PCT) return c.paddy ? 'Steep ground here: a paddy needs terraces to hold its water.' : 'Steep ground here: rain runs off and washes soil away. Plant across the slope and keep the ground covered.'
+  if (pct < FLAT_PCT) return c.paddy ? 'Flat ground here holds water well for a paddy.' : 'Flat ground here: water can pool in the wet months. Plant on raised beds or dig drains.'
+  return null
 }
 /* the best month to plant inside the dates (the earliest when it's a tie) */
 export function bestPlant(wx: CropWeather, p: Point, c: Crop, a: number, b: number) {
@@ -92,10 +141,6 @@ export const BAND: Record<Band, string> = { good: 'Good to plant', fair: 'Plant 
 
 export function harvestMonth(r: Fit) {
   return r.pm + r.c.months - 1
-}
-/* "Plant in Jan 2027 → harvest about Apr 2027" */
-export function planText(r: Fit) {
-  return (r.pm === M0 ? 'Plant now' : 'Plant in ' + mName(r.pm)) + ' → ' + (r.c.first ? 'first harvest' : 'harvest') + ' about ' + mName(harvestMonth(r))
 }
 export function cropWhy(r: Fit) {
   if (r.worst.f >= ISSUE) return 'Rain and heat suit it from planting to harvest.'

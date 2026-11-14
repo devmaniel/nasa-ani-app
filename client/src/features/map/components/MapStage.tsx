@@ -2,7 +2,7 @@ import { AttributionControl, GeoJSONSource, MapLibreMap, Marker, setWorkerUrl } 
 import { difference } from 'polyclip-ts'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef } from 'react'
-import { cityBorder, type Area } from '../api'
+import { cityBorder, TERRAIN_TILES, type Area } from '../api'
 import { mapStyle } from '../mapStyle'
 import { BOUNDS, type Place } from '../places'
 
@@ -11,7 +11,6 @@ setWorkerUrl(workerUrl)
 
 /* map pictures from OpenFreeMap (free, no key); hills from the free AWS elevation tiles */
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty'
-const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
 const TERRAIN = { source: 'terrain', exaggeration: 1.5 }
 const TERRAIN_TILE_PX = 256
 const TERRAIN_MAX_ZOOM = 15

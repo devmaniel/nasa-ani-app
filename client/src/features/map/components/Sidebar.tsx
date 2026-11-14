@@ -72,7 +72,7 @@ export function Sidebar({ tab, place, dates, loading: waiting, layer, filter, on
             : <Fragment key={redraw}>{weather ? (place ? <PlaceWeather place={place} wx={wx} w={w} dates={dates} layer={layer} onTile={onTile} /> : <CountryWeather wx={wx} w={w} dates={dates} layer={layer} onTile={onTile} />)
             : <section className="crops">{place ? <PlaceCrops place={place} wx={cropWeather(wx)} w={w} filter={filter} onFilter={onFilter} onOpen={onOpenGuide} /> : <CountryCrops wx={cropWeather(wx)} w={w} onOpen={onOpenGuide} />}</section>}</Fragment>}
         </div>
-        <p className="src">{loading ? <Sk w="70%" h={12} /> : 'NASA POWER (measured and usual) · Open-Meteo seasonal forecast' + (weather ? '' : ' · Crop needs: FAO ECOCROP')}</p>
+        <p className="src">{loading ? <Sk w="70%" h={12} /> : 'NASA POWER (measured and usual) · Open-Meteo seasonal forecast' + (weather ? ' · Lately: NASA IMERG, SMAP, VIIRS, GLDAS, ERA5 · Land: FAO GAEZ, NASA SRTM, GEDI' : ' · Crop needs: FAO ECOCROP · Land: FAO GAEZ, NASA SRTM')}</p>
       </div>
       {place && !loading && (
         <div className="sb-f" id="sb-f">

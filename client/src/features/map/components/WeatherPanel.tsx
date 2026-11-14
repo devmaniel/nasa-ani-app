@@ -1,10 +1,17 @@
-import { Cloud, Sprout, Sun } from 'lucide-react'
+import { Cloud, CloudSun, Mountain, Satellite, Sprout, Sun } from 'lucide-react'
 import { TbRipple } from 'react-icons/tb'
 import type { ReactNode } from 'react'
 import { heatWord, meanOf, pct, rainWord, SOIL_WORDS, soilLevel, type Point } from '../climate'
 import type { Kind, MapLayer } from '../climateLayer'
 import { fromWord, fmtY, lengthWord, M0, MON, mName, seasonsIn, SEASON_NAME, yearOf, type Dates, type Span } from '../dates'
 import { barsEnd, type Weather } from '../hooks/useWeather'
+import { CROPS, landBand } from '../crops'
+import { SLOPE_PCT, SLOPE_WORDS, type Land } from '../land'
+import type { AirUsual } from '../api'
+import { useAir } from '../hooks/useAir'
+import { useSpace } from '../hooks/useSpace'
+import { dayWord, greenWord, groundLine, latelyLines, treesLine, type Ground, type Lately } from '../space'
+import { capFirst, isDim, isHumid, monthsText, runs } from '../report'
 import { GROUPS, REGIONS, type Place } from '../places'
 import type { IconType, LayerKey } from '../types'
 import { RainBars } from './RainBars'
@@ -103,7 +110,8 @@ function Tile({ l, ic: Ic, label, layer, onTile, children }: LayerProps & { l: L
 }
 
 /* four tiles (rain, heat, soil, plants) over the months with data, for one place or the average of the regions; a tile shows its layer */
-function Tiles({ wx, pts, rain, w, ...lp }: LayerProps & { wx: Weather; pts: Point[]; rain: Row[]; w: Span }) {
+/* green: NASA VIIRS's plant greenness at one place, null for the country or while it loads */
+function Tiles({ wx, pts, rain, w, green, ...lp }: LayerProps & { wx: Weather; pts: Point[]; rain: Row[]; w: Span; green: Lately['green'] }) {
   const rr = withData(rain)
   const hr = withData(rowsOf(wx, 'heat', pts, w.a, w.b))
   const soil = rowsOf(wx, 'soil', pts, M0, M0).at(0)
@@ -136,11 +144,64 @@ function Tiles({ wx, pts, rain, w, ...lp }: LayerProps & { wx: Weather; pts: Poi
           <span className="tc">{soil?.kind === 'usual' ? 'Water in the ground: NASA\'s usual for ' + MON[M0 % 12] : 'Water in the ground: NASA, with the forecast rain'}</span>
         </Tile>
         <Tile l="plants" ic={Sprout} label="Plants now" {...lp}>
-          <span className="tv">On the map</span>
-          <span className="tc">NASA&rsquo;s satellite picture of how green the land is</span>
+          <span className="tv">{green ? greenWord(green.v) : 'On the map'} {green && <small className="num">NDVI {green.v.toFixed(2)}</small>}</span>
+          <span className="tc">{green ? 'NASA VIIRS, the 8 days to ' + dayWord(green.day) + ' · the map: NASA MODIS' : 'NASA’s satellite picture of how green the land is'}</span>
         </Tile>
       </div>
     </>
+  )
+}
+
+/* the land under one place: from FAO GAEZ about 25 km around, its slope, height and the crops it suits; from NASA SRTM the exact spot's
+   slope and height; from NASA GEDI how tall the trees around are. It has no map layer, so it isn't a button */
+function LandTile({ land, ground }: { land: Land | null; ground: Ground | null }) {
+  const cls = land && land.slope !== null && SLOPE_WORDS[land.slope] ? land.slope : null
+  if (cls === null && !ground) return null
+  const good = CROPS.filter((c) => landBand(land?.suit[c.n] ?? null) === 'good').map((c) => c.n.toLowerCase())
+  const trees = ground && treesLine(ground)
+  return (
+    <div className="tile static land">
+      <span className="tl"><Mountain className="i" aria-hidden />Land</span>
+      {cls !== null && land && (
+        <>
+          <span className="tv">{capFirst(SLOPE_WORDS[cls])} <small className="num">{SLOPE_PCT[cls]} slope</small></span>
+          {land.alt !== null && <span className="tc num">{Math.round(land.alt)} m above the sea</span>}
+          <span className="tc">{good.length ? 'Good land for ' + good.join(', ') : 'Not good land for any crop FAO rates'} · FAO GAEZ, about 25 km around</span>
+        </>
+      )}
+      {ground && <span className="tc num">{groundLine(ground)} · NASA SRTM</span>}
+      {trees && <span className="tc num">{trees} · NASA GEDI</span>}
+    </div>
+  )
+}
+
+/* the last days at one place, from space: rain over 7 days (NASA IMERG), then the last 30 days (ERA5), the soil now (NASA SMAP)
+   and the ground's water in GLDAS's newest month; no map layer, so not a button */
+function LatelyTile({ lately }: { lately: Lately | null }) {
+  const lines = lately ? latelyLines(lately) : []
+  if (!lately || (!lately.rain7 && !lines.length)) return null
+  return (
+    <div className="tile static lately">
+      <span className="tl"><Satellite className="i" aria-hidden />Lately</span>
+      {lately.rain7 && <span className="tv num">{Math.round(lately.rain7.mm)} mm <small>of rain in the 7 days to {dayWord(lately.rain7.to)} · NASA IMERG</small></span>}
+      {lines.map((l) => <span key={l} className="tc num">{l}</span>)}
+    </div>
+  )
+}
+
+/* the usual air humidity and sunlight in the dates at one place, from NASA POWER; no map layer, so not a button */
+function AirTile({ air, w }: { air: AirUsual | null; w: Span }) {
+  if (!air) return null
+  const rh = meanOf(range(w.a, w.b), (m) => air.rh[m % 12])
+  const humid = runs(w, (m) => isHumid(air, m)).map((g) => monthsText(g.a, g.b))
+  const dim = runs(w, (m) => isDim(air, m)).map((g) => monthsText(g.a, g.b))
+  return (
+    <div className="tile static air">
+      <span className="tl"><CloudSun className="i" aria-hidden />Air &amp; sun</span>
+      <span className="tv num">{Math.round(rh)}% <small>humidity, usual in your dates</small></span>
+      <span className="tc num">{humid.length ? 'Humid, fungus spreads easily: ' + humid.join(', ') : 'No very humid months in your dates'}</span>
+      <span className="tc num">{dim.length ? 'Less sun, slower growth: ' + dim.join(', ') : 'Plenty of sun through your dates'} · NASA POWER</span>
+    </div>
   )
 }
 
@@ -148,11 +209,17 @@ function Tiles({ wx, pts, rain, w, ...lp }: LayerProps & { wx: Weather; pts: Poi
 function Panel({ pts, scope, wx, w, dates, ...lp }: PanelProps & { pts: Point[]; scope: string }) {
   const bars = rowsOf(wx, 'rain', pts, w.a, barsEnd(w))
   const rain = bars.filter((r) => r.m <= w.b)
+  const one = pts.length === 1 ? pts[0] : null
+  const air = useAir(one)
+  const space = useSpace(one)
   return (
     <>
       <section><Summary rain={rain} w={w} dates={dates} scope={scope} /></section>
       <section>
-        <Tiles wx={wx} pts={pts} rain={rain} w={w} {...lp} />
+        <Tiles wx={wx} pts={pts} rain={rain} w={w} green={space.lately?.green ?? null} {...lp} />
+        <LatelyTile lately={space.lately} />
+        {one && <LandTile land={wx.land(one)} ground={space.ground} />}
+        <AirTile air={air} w={w} />
         <RainBars rows={bars.map((r) => ({ m: r.m, rain: isReal(r) ? r.v : null, usual: r.usual, kind: r.kind }))} w={w} />
       </section>
     </>

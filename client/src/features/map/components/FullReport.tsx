@@ -1,12 +1,14 @@
-import { Bean, Calendar, ChevronDown, Clock, Cloud, Info, MapPin, Shovel, Sprout } from 'lucide-react'
+import { Bean, Calendar, ChevronDown, Clock, Cloud, CloudSun, Info, LandPlot, MapPin, Mountain, Satellite, Shovel, Sprout } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { spanOf, TODAY, fmtY, type Dates } from '../dates'
+import { useAir } from '../hooks/useAir'
+import { useSpace } from '../hooks/useSpace'
 import { useWeather } from '../hooks/useWeather'
 import { coords, type Place } from '../places'
 import { alertsFor, areaAround, movesFor, placeWeather, rainRangeAround, reportMonths } from '../report'
 import type { IconType, Tone } from '../types'
 import type { OpenGuide } from './CropsPanel'
-import { AlertList, CropGroups, Figures, MoveList, NowRow, PlantingMonths, WorkTable } from './ReportCards'
+import { AlertList, CropGroups, Figures, LatelyList, MoveList, NowRow, PlantingMonths, WorkTable } from './ReportCards'
 import { ReportChart, ReportMonths } from './ReportChart'
 import { ReportHead } from './ReportHead'
 
@@ -36,14 +38,18 @@ export function FullReport({ open, place, dates, loading: waiting, onBack, onSho
   const [numbersOpen, setNumbersOpen] = useState(false)
   const w = spanOf(dates)
   /* the same NASA and forecast data as the map and the sidebar: at the place, and across the small map's area */
-  const wx = useWeather(open ? [place, ...areaAround(place)] : [], reportMonths(w))
+  const wx = useWeather(open ? [place, ...areaAround(place)] : [], reportMonths(w), open ? [place] : [])
+  /* NASA POWER's usual humidity and sunlight at the place, for the "Looking ahead" warnings */
+  const air = useAir(open ? place : null)
+  /* the last days and the exact spot, from space (NASA IMERG, SMAP, VIIRS, GLDAS, SRTM, GEDI; ERA5) */
+  const space = useSpace(open ? place : null)
   const loading = waiting || wx.status === 'loading'
   /* worked out once the data is in, not again on every redraw (the section links redraw it while scrolling) */
   const data = useMemo(() => {
     const span = spanOf(dates)
     const pw = wx.status === 'ready' ? placeWeather(wx, place, span) : null
-    return pw && { pw, alerts: alertsFor(pw, span), moves: movesFor(pw, span), range: rainRangeAround(wx, place, span) }
-  }, [wx, place, dates])
+    return pw && { pw, alerts: alertsFor(pw, span, air), moves: movesFor(pw, span), range: rainRangeAround(wx, place, span) }
+  }, [wx, place, dates, air])
 
   /* opening: back to the top, focus on the place name */
   useEffect(() => {
@@ -72,7 +78,7 @@ export function FullReport({ open, place, dates, loading: waiting, onBack, onSho
   const goTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' })
   return (
     <div className="rp" id="rp" ref={rpRef} inert={inert} role="region" aria-labelledby="rp-place" data-loading={loading ? '' : undefined} aria-busy={loading || undefined}>
-      <ReportHead place={place} dates={dates} w={w} loading={loading} moves={data?.moves ?? []} alerts={data?.alerts ?? []} headingRef={headingRef} onBack={onBack} onGoMoves={() => goTo('rp-s-moves')} />
+      <ReportHead place={place} dates={dates} w={w} loading={loading} land={loading ? null : wx.land(place)} ground={loading ? null : space.ground} moves={data?.moves ?? []} alerts={data?.alerts ?? []} headingRef={headingRef} onBack={onBack} onGoMoves={() => goTo('rp-s-moves')} />
       <nav className="rp-nav" aria-label="On this page">
         <div className="rp-wrap">
           <ul>
@@ -92,6 +98,7 @@ export function FullReport({ open, place, dates, loading: waiting, onBack, onSho
             <div className="rp-main">
               <Card id="rp-s-now" tone="water" ic={Cloud} title="Right now" sub={<p className="num" id="rp-now-l">Today, {fmtY(TODAY)}</p>}>
                 <NowRow pw={data.pw} />
+                <LatelyList lately={space.lately} />
               </Card>
               <Card id="rp-s-ahead" tone="pest" ic={Clock} title="Looking ahead" sub={<p>What stands out in your dates.</p>}>
                 <AlertList alerts={data.alerts} />
@@ -134,6 +141,10 @@ export function FullReport({ open, place, dates, loading: waiting, onBack, onSho
                 <ul>
                   <li><Info className="i" /><span>Rain, heat and soil: NASA POWER (measured and usual), with the Open-Meteo seasonal forecast.</span></li>
                   <li><Sprout className="i" /><span>Crop needs: FAO ECOCROP. Farm work: simple rules of thumb from the rain.</span></li>
+                  <li><Mountain className="i" /><span>The land, and how well it suits each crop: FAO GAEZ (1981–2010, rain-fed, low inputs), averaged over about 25 km around the place. It counts for part of a crop&rsquo;s rating; the weather in your dates for the rest.</span></li>
+                  <li><CloudSun className="i" /><span>Humidity and sunlight: NASA POWER, the usual for each month. Humid and less-sun warnings are rules of thumb.</span></li>
+                  <li><Satellite className="i" /><span>Lately: rain over the last 7 days from NASA GPM IMERG; soil water now from NASA SMAP; plant greenness from NASA VIIRS; the ground&rsquo;s water from NASA GLDAS; the last 30 days from ERA5, each against the same days or month in the 10 years before. NASA&rsquo;s numbers are read off its map pictures, so they&rsquo;re rounded.</span></li>
+                  <li><LandPlot className="i" /><span>The exact spot: slope and height from NASA SRTM; tree height around it from NASA GEDI (2019–2023). The map&rsquo;s Fields photo: Landsat and Sentinel-2, as NASA HLS.</span></li>
                   <li><Calendar className="i" /><span>One number per month for rain and heat.</span></li>
                   <li><Clock className="i" /><span id="rp-sure">The forecast covers about 6 months. Later months show NASA&rsquo;s usual for that month.</span></li>
                   <li><MapPin className="i" /><span>Place names: PSGC 3Q 2026.</span></li>
@@ -143,7 +154,7 @@ export function FullReport({ open, place, dates, loading: waiting, onBack, onSho
           </>
         )}
       </div>
-      <p className="rp-wrap rp-src">NASA POWER · Open-Meteo seasonal forecast · FAO ECOCROP · Change the place or the dates in the top bar.</p>
+      <p className="rp-wrap rp-src">NASA POWER · NASA IMERG, SMAP, VIIRS, GLDAS, SRTM, GEDI · ERA5 · Open-Meteo seasonal forecast · FAO ECOCROP · FAO GAEZ · Change the place or the dates in the top bar.</p>
     </div>
   )
 }

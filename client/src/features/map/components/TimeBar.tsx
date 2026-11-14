@@ -29,7 +29,7 @@ export function TimeBar({ dates, w, frame, playing, strip, onPlay, onScrub }: Pr
       <button className="tplay" id="tplay" type="button" aria-label={label} data-icon={icon} onClick={onPlay}><PlayIcon className="i" /></button>
       <div className="ttrk">
         <div className="lane tlabels" id="tlabels" aria-hidden="true">
-          <span>{strip ? strip.label : 'Pick Rain, Heat or Soil to colour the months'}</span>
+          <span>{strip ? strip.label : 'Pick Rain, Heat, Soil, Humidity or Sun to colour the months'}</span>
         </div>
         <div className="lane tzones" id="tzones" aria-hidden="true">
           {strip?.cells.map((c) => (

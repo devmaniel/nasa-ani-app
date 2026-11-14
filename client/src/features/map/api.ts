@@ -79,16 +79,108 @@ export async function placeOf(s: Suggestion): Promise<Place> {
 
 /* ---- weather for the map layers: NASA pictures for now, then a free forecast, then NASA's usual for the month ---- */
 
+const GIBS_URL = 'https://gibs.earthdata.nasa.gov'
+const GIBS_WMTS = GIBS_URL + '/wmts/epsg3857/best'
+
 /* NASA's map picture of a layer (GIBS: free, no key); `level` is the closest zoom NASA draws it at;
    time: 'default' for the latest, or a day (YYYY-MM-DD) for an older picture */
 export function nasaTiles(layerId: string, level: number, time = 'default') {
-  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerId}/default/${time}/GoogleMapsCompatible_Level${level}/{z}/{y}/{x}.png`
+  return `${GIBS_WMTS}/${layerId}/default/${time}/GoogleMapsCompatible_Level${level}/{z}/{y}/{x}.png`
+}
+
+/* free elevation tiles on AWS (Mapzen's terrain tiles, "terrarium" colours); in the Philippines they're built from NASA SRTM */
+export const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+
+/* one map tile's pixels, exactly as sent (no colour adjustment, so a colour can be looked up in a colour key) */
+export async function tilePixels(url: string): Promise<ImageData> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Map tile request failed (${res.status})`)
+  const img = await createImageBitmap(await res.blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' })
+  const ctx = new OffscreenCanvas(img.width, img.height).getContext('2d', { willReadFrequently: true })
+  if (!ctx) throw new Error('This browser cannot read map tiles')
+  ctx.drawImage(img, 0, 0)
+  return ctx.getImageData(0, 0, img.width, img.height)
+}
+
+/* the newest day NASA has a picture of a layer for (YYYY-MM-DD) */
+export async function gibsLatest(layerId: string, level: number): Promise<string> {
+  const params = new URLSearchParams({ SERVICE: 'WMTS', REQUEST: 'DescribeDomains', LAYER: layerId, TILEMATRIXSET: 'GoogleMapsCompatible_Level' + level })
+  const res = await fetch(`${GIBS_WMTS}/wmts.cgi?${params}`)
+  if (!res.ok) throw new Error(`NASA GIBS request failed (${res.status})`)
+  /* the days as ranges, "2000-06-01/2025-10-22/P1D,…,2026-05-27/2026-11-11/P1D": the last range's end is the newest */
+  const domain = /<Domain>([^<]*)<\/Domain>/.exec(await res.text())?.[1]
+  const last = domain?.split(',').at(-1)?.split('/')[1]?.slice(0, 10)
+  if (!last || !parseIso(last)) throw new Error('NASA GIBS sent an unexpected answer')
+  return last
+}
+
+/* a colour key: each colour (as 0xRRGGBB) and the values it stands for, from lo up to hi (±Infinity at the open ends) */
+export type ColourKey = Map<number, [number, number]>
+const RANGE = /^[[(]\s*([^,]+?)\s*,\s*([^)\]]+?)\s*[)\]]$/
+const bound = (s: string) => (s.includes('INF') ? (s.startsWith('-') ? -Infinity : Infinity) : Number(s))
+
+/* NASA's published colour key for a layer; colours for "no data" and see-through colours are left out */
+export async function gibsKey(name: string): Promise<ColourKey> {
+  const res = await fetch(`${GIBS_URL}/colormaps/v1.3/${name}.xml`)
+  if (!res.ok) throw new Error(`NASA GIBS colour key request failed (${res.status})`)
+  const doc = new DOMParser().parseFromString(await res.text(), 'application/xml')
+  const key: ColourKey = new Map()
+  for (const e of doc.querySelectorAll('ColorMapEntry')) {
+    if (e.getAttribute('nodata') === 'true' || e.getAttribute('transparent') === 'true') continue
+    const rgb = (e.getAttribute('rgb') ?? '').split(',').map(Number)
+    const range = RANGE.exec(e.getAttribute('value') ?? '')
+    if (rgb.length !== 3 || !rgb.every(Number.isInteger) || !range) continue
+    const c = (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]
+    if (!key.has(c)) key.set(c, [bound(range[1]), bound(range[2])])
+  }
+  if (!key.size) throw new Error('NASA GIBS sent an empty colour key')
+  return key
+}
+
+/* ---- NASA's search (CMR): the newest field picture of a place (free, no key) ---- */
+
+const CMR_URL = 'https://cmr.earthdata.nasa.gov/search/granules.json'
+export type Granule = { day: string; cloud: number }
+
+/* the newest picture from a NASA collection that covers the place, with at most maxCloud % cloud, up to day `until` */
+export async function latestGranule(shortName: string, p: { lon: number; lat: number }, maxCloud: number, until: string): Promise<Granule | null> {
+  const params = new URLSearchParams({
+    short_name: shortName, point: p.lon.toFixed(COORD_DP) + ',' + p.lat.toFixed(COORD_DP), sort_key: '-start_date', page_size: '1',
+    cloud_cover: '0,' + maxCloud, temporal: ',' + until + 'T23:59:59Z',
+  })
+  const res = await fetch(`${CMR_URL}?${params}`)
+  if (!res.ok) throw new Error(`NASA search failed (${res.status})`)
+  const json: unknown = await res.json()
+  const entry: unknown = isRecord(json) && isRecord(json.feed) && Array.isArray(json.feed.entry) ? json.feed.entry[0] : null
+  if (!isRecord(entry)) return null
+  const day = typeof entry.time_start === 'string' ? entry.time_start.slice(0, 10) : ''
+  const cloud = Number(entry.cloud_cover)
+  return parseIso(day) && Number.isFinite(cloud) ? { day, cloud } : null
+}
+
+/* ---- ERA5 (ECMWF's reanalysis of past weather) through Open-Meteo: free, no key, about 5 days behind ---- */
+
+const ERA5_URL = 'https://archive-api.open-meteo.com/v1/archive'
+/* day by day from `start` to `end` (YYYY-MM-DD): rain (mm) and mean heat (°C); NaN where ERA5 has none yet */
+export type Days = { day: string[]; rain: number[]; heat: number[] }
+
+export async function era5Days(p: { lon: number; lat: number }, start: string, end: string): Promise<Days> {
+  const params = new URLSearchParams({
+    latitude: p.lat.toFixed(COORD_DP), longitude: p.lon.toFixed(COORD_DP), start_date: start, end_date: end,
+    daily: 'precipitation_sum,temperature_2m_mean', models: 'era5',
+  })
+  const res = await fetch(`${ERA5_URL}?${params}`)
+  if (!res.ok) throw new Error(`ERA5 request failed (${res.status})`)
+  const json: unknown = await res.json()
+  const d = isRecord(json) && isRecord(json.daily) ? json.daily : null
+  if (!d || !Array.isArray(d.time)) throw new Error('ERA5 sent an unexpected answer')
+  return { day: d.time.map(String), rain: toNumbers(d.precipitation_sum), heat: toNumbers(d.temperature_2m_mean) }
 }
 
 export type Box = { w: number; s: number; e: number; n: number }
 /* a spot on NASA POWER's grid and its value for each month, January first (NaN where NASA has none) */
 export type GridPoint = { lon: number; lat: number; months: number[] }
-export type UsualParam = 'PRECTOTCORR' | 'T2M' | 'GWETROOT'
+export type UsualParam = 'PRECTOTCORR' | 'T2M' | 'GWETROOT' | 'RH2M' | 'ALLSKY_SFC_SW_DWN'
 
 const USUAL_URL = 'https://power.larc.nasa.gov/api/temporal/climatology/regional'
 const MONTHLY_URL = 'https://power.larc.nasa.gov/api/temporal/monthly/regional'
@@ -171,4 +263,55 @@ export async function forecastFor(spots: { lon: number; lat: number }[]): Promis
   })
   const months = Math.max(0, ...pairs.map(([, s]) => s.rain.length))
   return { first, months, spots: new Map(pairs) }
+}
+
+/* ---- FAO GAEZ v4: land and crop suitability (free ArcGIS image services, no key) ---- */
+
+const GAEZ_URL = 'https://gaez-services.fao.org/server/rest/services'
+
+/* one raster's value at each point, in the points' order; NaN where FAO has none (the sea).
+   Sent as a form POST: FAO's server turns away a long web address, which many points make */
+export async function gaezSamples(service: string, field: string, id: number, pts: { lon: number; lat: number }[]): Promise<number[]> {
+  const body = new URLSearchParams({
+    geometry: JSON.stringify({ points: pts.map((p) => [p.lon, p.lat]) }), geometryType: 'esriGeometryMultipoint', sr: '4326',
+    mosaicRule: JSON.stringify({ mosaicMethod: 'esriMosaicNone', where: `${field}=${id}` }),
+    returnFirstValueOnly: 'true', returnGeometry: 'false', f: 'json',
+  })
+  const res = await fetch(`${GAEZ_URL}/${service}/ImageServer/getSamples`, { method: 'POST', body })
+  if (!res.ok) throw new Error(`FAO GAEZ request failed (${res.status})`)
+  const json: unknown = await res.json()
+  if (!isRecord(json) || !Array.isArray(json.samples)) throw new Error('FAO GAEZ sent an unexpected answer')
+  const out = pts.map(() => NaN)
+  for (const s of json.samples as unknown[]) {
+    if (!isRecord(s) || !isNumber(s.locationId) || typeof s.value !== 'string') continue
+    const v = Number(s.value)
+    if (Number.isFinite(v) && s.locationId < out.length) out[s.locationId] = v
+  }
+  return out
+}
+
+/* ---- NASA POWER at one place: the usual humidity and sunlight for each month ---- */
+
+const POINT_USUAL_URL = 'https://power.larc.nasa.gov/api/temporal/climatology/point'
+/* rh: air humidity (%), sun: sunlight reaching the ground (MJ/m² a day); twelve values each, January first */
+export type AirUsual = { rh: number[]; sun: number[] }
+
+function monthsOf(v: unknown): number[] | null {
+  if (!isRecord(v)) return null
+  const months = MONTH_KEYS.map((k) => v[k])
+  return months.every((x): x is number => isNumber(x) && x !== NO_DATA) ? months : null
+}
+
+export async function airUsual(p: { lon: number; lat: number }): Promise<AirUsual> {
+  const params = new URLSearchParams({
+    parameters: 'RH2M,ALLSKY_SFC_SW_DWN', community: 'AG', format: 'JSON', longitude: p.lon.toFixed(COORD_DP), latitude: p.lat.toFixed(COORD_DP),
+  })
+  const res = await fetch(`${POINT_USUAL_URL}?${params}`)
+  if (!res.ok) throw new Error(`NASA POWER request failed (${res.status})`)
+  const json: unknown = await res.json()
+  const param = isRecord(json) && isRecord(json.properties) && isRecord(json.properties.parameter) ? json.properties.parameter : null
+  const rh = param && monthsOf(param.RH2M)
+  const sun = param && monthsOf(param.ALLSKY_SFC_SW_DWN)
+  if (!rh || !sun) throw new Error('NASA POWER sent an unexpected answer')
+  return { rh, sun }
 }

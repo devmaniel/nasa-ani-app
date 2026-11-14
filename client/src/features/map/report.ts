@@ -1,7 +1,8 @@
 /* The full report's numbers: the chosen place and the map's dates (from _archive/full-report-2026-11-05) */
-import { Bug, Clock, Cloud, Droplet, Shovel, Sprout, Sun } from 'lucide-react'
+import { Bug, Clock, Cloud, CloudSun, Droplet, Shovel, Sprout, Sun } from 'lucide-react'
+import type { AirUsual } from './api'
 import { sum, type Point } from './climate'
-import { band, cropFit, cropMonths, CROPS, GOOD, ISSUE, planText, ranked, type CropWeather, type Fit } from './crops'
+import { band, cropFit, cropMonths, CROPS, GOOD, ISSUE, ranked, type CropWeather, type Fit } from './crops'
 import { isLessSure, LESS_SURE_AFTER, M0, MON, MONTH_FULL, mName, seasonKey, yearOf, type Span } from './dates'
 import type { MonthValue, Weather } from './hooks/useWeather'
 import type { IconType, Tone } from './types'
@@ -10,6 +11,17 @@ const RP_DRY = 0.85
 const RP_WET = 1.15
 export const RP_VERY_DRY_MM = 50
 const RP_WARM_C = 0.5
+/* air humidity (%) from which leaf fungus and rot spread easily (a rule of thumb) */
+export const HUMID_RH = 85
+/* a month with less than this share of the place's yearly average sunlight is a cloudy one */
+export const LESS_SUN = 0.85
+
+/* the month's usual sunlight against the place's yearly average */
+export function sunShare(air: AirUsual, m: number) {
+  return air.sun[m % 12] / (air.sun.reduce((s, v) => s + v, 0) / air.sun.length)
+}
+export const isHumid = (air: AirUsual, m: number) => air.rh[m % 12] >= HUMID_RH
+export const isDim = (air: AirUsual, m: number) => sunShare(air, m) < LESS_SUN
 
 /* one month at the place: rain (mm) and heat (°C), and NASA's usual for that month */
 type Month = { rain: number; usualRain: number; heat: number; usualHeat: number }
@@ -38,7 +50,7 @@ export function placeWeather(wx: Weather, p: Point, w: Span): PlaceWeather | nul
   return {
     p,
     at,
-    crop: { rain: (_, m) => table.get(m)?.rain ?? null, heat: (_, m) => table.get(m)?.heat ?? null },
+    crop: { rain: (_, m) => table.get(m)?.rain ?? null, heat: (_, m) => table.get(m)?.heat ?? null, land: (_, crop) => wx.land(p)?.suit[crop] ?? null },
     soil: wx.at('soil', p, M0),
   }
 }
@@ -68,7 +80,7 @@ export function capFirst(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 /* the runs of months inside the dates where test holds */
-function runs(w: Span, test: (m: number) => boolean) {
+export function runs(w: Span, test: (m: number) => boolean) {
   const out: Span[] = []
   let open = false
   for (let m = w.a; m <= w.b; m++) {
@@ -92,7 +104,7 @@ const warmthOf = (pw: PlaceWeather, m: number) => pw.at(m).heat - pw.at(m).usual
 
 /* what stands out in the dates */
 export type Alert = { tone: Tone; ic: IconType; t: string; when: string; d: string }
-export function alertsFor(pw: PlaceWeather, w: Span) {
+export function alertsFor(pw: PlaceWeather, w: Span, air: AirUsual | null) {
   const rows: Alert[] = []
   dryRuns(pw, w).forEach((g) => {
     rows.push({ tone: 'harvest', ic: Cloud, t: 'Drier than usual', when: monthsText(g.a, g.b), d: 'About ' + Math.round(rainOff(pw, g.a, g.b) * 100) + '% less rain than a usual year.' + (g.a > w.a ? ' Store water before ' + MONTH_FULL[g.a % 12] + '.' : '') })
@@ -107,13 +119,22 @@ export function alertsFor(pw: PlaceWeather, w: Span) {
   runs(w, (m) => pw.at(m).rain / pw.at(m).usualRain > RP_WET).forEach((g) => {
     rows.push({ tone: 'water', ic: Cloud, t: 'Wetter than usual', when: monthsText(g.a, g.b), d: 'About ' + Math.round(-rainOff(pw, g.a, g.b) * 100) + '% more rain than a usual year. Keep the drains open.' })
   })
+  if (air) {
+    runs(w, (m) => isHumid(air, m)).forEach((g) => {
+      rows.push({ tone: 'pest', ic: Bug, t: 'Humid air', when: monthsText(g.a, g.b), d: 'Usually over ' + HUMID_RH + '% humidity here. Leaf fungus and rot spread easily: give plants room and check the leaves.' })
+    })
+    runs(w, (m) => isDim(air, m)).forEach((g) => {
+      const share = sum(g.a, g.b, (m) => sunShare(air, m)) / (g.b - g.a + 1)
+      rows.push({ tone: 'none', ic: CloudSun, t: 'Less sun', when: monthsText(g.a, g.b), d: 'Usually about ' + Math.round((1 - share) * 100) + '% less sun than the year’s average here. Crops grow more slowly.' })
+    })
+  }
   if (isLessSure(w.b)) rows.push({ tone: 'none', ic: Clock, t: 'Less sure', when: 'after ' + mName(M0 + LESS_SURE_AFTER), d: 'Those months are an outlook: a likely tendency, not a forecast.' })
   if (!rows.length) rows.push({ tone: 'grow', ic: Sprout, t: 'Nothing stands out', when: '', d: 'Rain and heat look close to a usual year in your dates.' })
   return rows
 }
 
 /* the best moves: the old Adapt headlines, for a place and dates instead of a farm */
-export type Move = { t: string; d: string; r?: Fit }
+export type Move = { t: string; d?: string; r?: Fit }
 export function movesFor(pw: PlaceWeather, w: Span) {
   const all = ranked(pw.crop, pw.p, w)
   const top = all[0]
@@ -121,8 +142,8 @@ export function movesFor(pw: PlaceWeather, w: Span) {
   const n = w.b - w.a + 1
   const where = n >= 12 ? ' this year' : w.a === w.b ? ' this month' : ' in your dates'
   out.push(band(top.score) === 'poor'
-    ? { t: 'No crop does well' + where, d: 'Rain and heat are hard on every crop here. ' + top.c.n + ' does the least badly: ' + planText(top) + '.' }
-    : { t: top.c.n + ' is your best chance' + where, d: planText(top) + '.', r: top })
+    ? { t: 'No crop does well' + where, d: 'Rain and heat are hard on every crop here. ' + top.c.n + ' does the least badly.' }
+    : { t: top.c.n + ' is your best chance' + where, r: top })
   const dry = dryRuns(pw, w)[0]
   if (dry) {
     out.push(dry.a > w.a
@@ -130,9 +151,9 @@ export function movesFor(pw: PlaceWeather, w: Span) {
       : { t: 'Save water from the start', d: 'Your dates open drier than usual: about ' + Math.round(rainOff(pw, dry.a, dry.b) * 100) + '% less rain in ' + monthsText(dry.a, dry.b) + '.' })
   }
   const now = all.find((r) => r !== top && band(r.score) === 'good' && r.pm === w.a)
-  if (now) out.push({ t: now.c.n + ' does well planted ' + (w.a === M0 ? 'now' : 'at the start, in ' + MONTH_FULL[w.a % 12]), d: planText(now) + '.', r: now })
+  if (now) out.push({ t: now.c.n + ' does well planted ' + (w.a === M0 ? 'now' : 'at the start, in ' + MONTH_FULL[w.a % 12]), r: now })
   const wait = all.find((r) => r !== top && band(r.score) === 'good' && r.pm - w.a >= 3)
-  if (wait) out.push({ t: wait.c.n + ' does well if you wait until ' + MONTH_FULL[wait.pm % 12], d: planText(wait) + '.', r: wait })
+  if (wait) out.push({ t: wait.c.n + ' does well if you wait until ' + MONTH_FULL[wait.pm % 12], r: wait })
   return out
 }
 
