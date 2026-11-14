@@ -82,8 +82,8 @@ export function HomePage() {
               <div className="c2">
                 <article className="card rv" data-rv style={{ background: 'var(--mint-200)' }}>
                   <h3 className="h3">14 crops</h3>
-                  <p>Rice, corn, cassava, banana and more. Each one rated for your dates.</p>
-                  <img className="side" src={cropsShot} width="444" height="830" loading="lazy" alt="The Crops tab: a half-donut of 14 crops, 8 good to plant, then rice, sweet potato and cassava at the top of the list." />
+                  <p>Rice, corn, cassava, banana and more. Each one rated for planting now.</p>
+                  <img className="side" src={cropsShot} width="444" height="830" loading="lazy" alt="The Crops panel: crops grouped into Plant now, With care and Wait, each with a photo, a 1 to 5 rating and when to harvest." />
                 </article>
                 <article className="card short rv" data-rv style={{ background: 'var(--mist-200)' }}>
                   <h3 className="h3">Rain and heat, checked</h3>
