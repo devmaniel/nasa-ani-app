@@ -15,7 +15,9 @@ Built for the **NASA Space Apps Challenge**.
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](#built-with)
 [![NASA data](https://img.shields.io/badge/data-NASA%20POWER%20%C2%B7%20MODIS-0B3D91?style=flat-square&logo=nasa&logoColor=white)](#where-the-data-comes-from)
 
-**[Features](#features)** · **[Data](#where-the-data-comes-from)** · **[Run it](#run-it-locally)** · **[Team](#team)**
+### [🌐 Try the live app](https://nasa-ani-app.vercel.app) · [▶️ Watch the 30-second demo](#demo)
+
+**[Demo](#demo)** · **[Features](#features)** · **[Data](#where-the-data-comes-from)** · **[Run it](#run-it-locally)** · **[Team](#team)**
 
 <br/>
 
@@ -29,6 +31,14 @@ Pick a place and a stretch of dates. Ani shows the weather there — **what was 
 
 > [!NOTE]
 > Ani doesn't make decisions for farmers. It shows the evidence so they can decide.
+
+<br/>
+
+## Demo
+
+**Live app:** [nasa-ani-app.vercel.app](https://nasa-ani-app.vercel.app)
+
+**30-second demo:** [▶️ Watch the video](media/ani-demo.mp4)
 
 <br/>
 
